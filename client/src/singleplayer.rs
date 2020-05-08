@@ -62,7 +62,7 @@ impl SinglePlayer {
 
     pub fn new(
         settings: &mut Settings,
-        device: &mut wgpu::Device,
+        device: &wgpu::Device,
         mut client: Box<dyn Client>,
     ) -> Result<(Box<dyn State>, wgpu::CommandBuffer)> {
         info!("Launching singleplayer");
@@ -150,7 +150,7 @@ impl State for SinglePlayer {
         _data: &WindowData,
         flags: &mut WindowFlags,
         _seconds_delta: f64,
-        _device: &mut wgpu::Device,
+        _device: &wgpu::Device,
     ) -> Result<StateTransition> {
         self.client_timing.start_frame();
         let mut chunks_to_mesh = HashSet::new();
@@ -276,7 +276,7 @@ impl State for SinglePlayer {
         &mut self,
         _settings: &Settings,
         buffers: WindowBuffers<'a>,
-        device: &mut wgpu::Device,
+        device: &wgpu::Device,
         data: &WindowData,
         input_state: &InputState,
     ) -> Result<(StateTransition, wgpu::CommandBuffer)> {

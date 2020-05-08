@@ -22,7 +22,7 @@ pub struct UiRenderer {
 }
 
 impl<'a> UiRenderer {
-    pub fn new(device: &mut wgpu::Device) -> Self {
+    pub fn new(device: &wgpu::Device) -> Self {
         // Load fonts
         let default_font: &'static [u8] =
             include_bytes!("../../../assets/fonts/IBMPlexMono-Regular.ttf");
@@ -112,7 +112,7 @@ impl<'a> UiRenderer {
     pub fn render<Message>(
         &mut self,
         buffers: WindowBuffers<'a>,
-        device: &mut wgpu::Device,
+        device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         data: &WindowData,
         ui: &quint::Ui<PrimitiveBuffer, Message>,
