@@ -104,7 +104,7 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
     let adapter = block_on(wgpu::Adapter::request(&wgpu::RequestAdapterOptions {
         power_preference: wgpu::PowerPreference::HighPerformance, // TODO: configure this?
         compatible_surface: Some(&surface),
-    }, wgpu::BackendBit::all()))
+    }, wgpu::BackendBit::DX12 | wgpu::BackendBit::VULKAN | wgpu::BackendBit::METAL))
     .expect("Failed to create adapter");
     let (device, mut queue) = block_on(adapter.request_device(&wgpu::DeviceDescriptor {
         extensions: wgpu::Extensions {

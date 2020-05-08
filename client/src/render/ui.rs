@@ -1,6 +1,6 @@
 //! Ui rendering
 
-use super::{ buffer_from_slice, to_u8_slice };
+use super::{ create_default_depth_stencil_attachment, buffer_from_slice, to_u8_slice };
 use super::buffers::DynamicBuffer;
 use super::init::ShaderStage;
 use crate::ui::PrimitiveBuffer;
@@ -122,7 +122,7 @@ impl<'a> UiRenderer {
         // Render test dropdown
         let mut primitive_buffer = gui.drain_primitives();
 
-        //ui.render(&mut primitive_buffer);
+        // ui.render(&mut primitive_buffer);
 
         // Render primitives
         let mut rect_vertices: Vec<UiVertex> = Vec::new();
@@ -310,22 +310,10 @@ impl<'a> UiRenderer {
             );
             // Update the uniform buffer to map (w, h) coordinates to [-1, 1]
             let transformation_matrix = [
-                2.0 / win_w as f32,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                2.0 / win_h as f32,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.5,
-                0.0,
-                -1.0,
-                -1.0,
-                0.5,
-                1.0,
+                2.0 / win_w, 0.0, 0.0, 0.0,
+                0.0, -2.0 / win_h, 0.0, 0.0,
+                0.0, 0.0, 1.0, 0.0,
+                -1.0, 1.0, 0.0, 1.0,
             ];
             let src_buffer = buffer_from_slice(
                 device,
@@ -358,7 +346,6 @@ impl<'a> UiRenderer {
                 device,
                 encoder,
                 buffers.texture_buffer,
-                //create_default_depth_stencil_attachment(buffers.depth_buffer),
                 data.physical_window_size.width,
                 data.physical_window_size.height,
             )

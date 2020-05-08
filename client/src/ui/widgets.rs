@@ -43,6 +43,8 @@ where
     }
 
     fn render(&self, buffer: &mut PrimitiveBuffer, cursor_position: Position, mut l: Layout) {
+        // log::info!("Rendering widget buffer: {:?}", buffer);
+
         let hovering = l.is_position_inside(cursor_position);
         // Padded Layout
         let mut pl = l.with_padding(6.0);
@@ -112,6 +114,7 @@ where
         if let quint::MouseButton::Left = button {
             if let quint::ButtonState::Pressed = state {
                 if layout.is_position_inside(cursor_position) {
+                    log::info!("Clicked inside! {:?}", layout);
                     messages.push(self.message.clone());
                 }
             }

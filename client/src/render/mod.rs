@@ -4,7 +4,7 @@
 mod buffers;
 mod init;
 mod render;
-pub use self::render::{clear_color_and_depth, clear_depth, encode_resolve_render_pass, to_u8_slice, buffer_from_slice};
+pub use self::render::{create_default_depth_stencil_attachment, clear_color_and_depth, clear_depth, encode_resolve_render_pass, to_u8_slice, buffer_from_slice};
 
 /* OTHER HELPER MODULES */
 mod frustum;
