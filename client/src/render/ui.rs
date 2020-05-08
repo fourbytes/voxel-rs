@@ -5,6 +5,7 @@ use super::buffers::DynamicBuffer;
 use super::init::ShaderStage;
 use crate::ui::PrimitiveBuffer;
 use crate::window::{WindowBuffers, WindowData};
+use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
 use std::collections::{BTreeMap, HashMap};
 use wgpu_glyph::FontId;
 
@@ -182,12 +183,12 @@ impl<'a> UiRenderer {
             center_horizontally, center_vertically,
         } in primitive_buffer.text.into_iter()
         {
-            let dpi = data.hidpi_factor as f32;
+            let scale = data.hidpi_factor;
 
             // Apply DPI to font size
             for p in parts.iter_mut() {
-                p.font_size.x *= dpi;
-                p.font_size.y *= dpi;
+                p.font_size.x *= scale as f32;
+                p.font_size.y *= scale as f32;
             }
             // Get font IDs
             let Self { ref fonts, .. } = &self;
@@ -204,9 +205,12 @@ impl<'a> UiRenderer {
                         .unwrap_or_default(),
                 })
                 .collect();
+
             // Calculate positions
-            let mut x = x as f32;
-            let mut y = y as f32;
+            let physical_position: PhysicalPosition<f32> = PhysicalPosition::from_logical(LogicalPosition::new(x, y), scale);
+            let mut x = physical_position.x;
+            let mut y = physical_position.y;
+
             let mut w = match w {
                 Some(w) => w as f32,
                 None => std::f32::INFINITY,
@@ -215,17 +219,16 @@ impl<'a> UiRenderer {
                 Some(h) => h as f32,
                 None => std::f32::INFINITY,
             };
+            let physical_size: PhysicalSize<f32> = PhysicalSize::from_logical(LogicalSize::new(w, h), scale);
+            let (w, h) = physical_size.into();
+
             if center_horizontally {
                 x += w/2.0;
             }
             if center_vertically {
                 y += h/2.0;
             }
-            // Apply DPI to positions
-            x *= dpi;
-            y *= dpi;
-            w *= dpi;
-            h *= dpi;
+
             let v_align = if center_vertically {
                 wgpu_glyph::VerticalAlign::Center
             } else {

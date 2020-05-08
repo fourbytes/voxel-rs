@@ -14,4 +14,4 @@ env_logger = "0.7"
 log = "0.4"
 
 # Math
-nalgebra = "0.18"
+nalgebra = "0.21"
