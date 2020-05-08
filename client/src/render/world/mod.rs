@@ -670,7 +670,7 @@ fn create_target_vertices(face: usize) -> Vec<SkyboxVertex> {
                         id[i] = 0;
                         let v2 = vpos(id[0], id[1], id[2], face);
                         id[i] = 1;
-                        vertices.extend([v1, v2].into_iter());
+                        vertices.extend([v1, v2].iter());
                     }
                 }
             }

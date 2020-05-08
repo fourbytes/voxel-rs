@@ -1,6 +1,6 @@
 //! Ui rendering
 
-use super::{ create_default_depth_stencil_attachment, buffer_from_slice, to_u8_slice };
+use super::{ buffer_from_slice, to_u8_slice };
 use super::buffers::DynamicBuffer;
 use super::init::ShaderStage;
 use crate::ui::PrimitiveBuffer;
@@ -120,7 +120,7 @@ impl<'a> UiRenderer {
         draw_crosshair: bool,
     ) {
         // Render test dropdown
-        let mut primitive_buffer = gui.drain_primitives();
+        let primitive_buffer = gui.drain_primitives();
 
         // ui.render(&mut primitive_buffer);
 
@@ -157,8 +157,8 @@ impl<'a> UiRenderer {
             let b_index = a_index + 1;
             let c_index = b_index + 1;
             let d_index = c_index + 1;
-            rect_vertices.extend([a, b, c, d].into_iter());
-            rect_indices.extend([b_index, a_index, c_index, b_index, c_index, d_index].into_iter());
+            rect_vertices.extend([a, b, c, d].iter());
+            rect_indices.extend([b_index, a_index, c_index, b_index, c_index, d_index].iter());
         }
         // Triangles
         for TrianglesPrimitive {
@@ -211,11 +211,11 @@ impl<'a> UiRenderer {
             let mut x = physical_position.x;
             let mut y = physical_position.y;
 
-            let mut w = match w {
+            let w = match w {
                 Some(w) => w as f32,
                 None => std::f32::INFINITY,
             };
-            let mut h = match h {
+            let h = match h {
                 Some(h) => h as f32,
                 None => std::f32::INFINITY,
             };
@@ -294,10 +294,10 @@ impl<'a> UiRenderer {
                 color: COLOR,
             };
             let voffset = rect_vertices.len() as u32;
-            rect_vertices.extend([v1, v2, v3, v4, v5, v6, v7, v8].into_iter());
+            rect_vertices.extend([v1, v2, v3, v4, v5, v6, v7, v8].iter());
             rect_indices.extend(
                 [0, 1, 2, 1, 2, 3, 4, 5, 6, 5, 6, 7]
-                    .into_iter()
+                    .iter()
                     .map(|id| id + voffset),
             );
         }
@@ -312,8 +312,8 @@ impl<'a> UiRenderer {
             let transformation_matrix = [
                 2.0 / win_w, 0.0, 0.0, 0.0,
                 0.0, -2.0 / win_h, 0.0, 0.0,
-                0.0, 0.0, 1.0, 0.0,
-                -1.0, 1.0, 0.0, 1.0,
+                0.0, 0.0, 0.5, 0.0,
+                -1.0, 1.0, 0.5, 1.0,
             ];
             let src_buffer = buffer_from_slice(
                 device,
