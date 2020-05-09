@@ -2,7 +2,6 @@
 
 use std::collections::HashMap;
 use std::hash::Hash;
-use futures::executor::block_on;
 
 use super::{ buffer_from_slice, to_u8_slice };
 
@@ -336,12 +335,14 @@ mod tests {
     #[test]
     fn test_multi_buffer() {
         use wgpu::*;
+        use futures::executor::block_on;
 
         let adapter = block_on(Adapter::request(&RequestAdapterOptions {
             compatible_surface: None,
             power_preference: PowerPreference::HighPerformance,
         }, BackendBit::PRIMARY)).unwrap();
-        let (device, mut queue) = block_on(adapter.request_device(&DeviceDescriptor {
+        #[allow(unused)]
+        let (device, queue) = block_on(adapter.request_device(&DeviceDescriptor {
             extensions: Extensions {
                 anisotropic_filtering: false,
             },

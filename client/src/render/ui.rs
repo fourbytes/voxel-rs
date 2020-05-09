@@ -183,12 +183,12 @@ impl<'a> UiRenderer {
             center_horizontally, center_vertically,
         } in primitive_buffer.text.into_iter()
         {
-            let scale = data.hidpi_factor;
+            let scale = data.hidpi_factor as f32;
 
-            // Apply DPI to font size
+            // Apply DPI scale to font size
             for p in parts.iter_mut() {
-                p.font_size.x *= scale as f32;
-                p.font_size.y *= scale as f32;
+                p.font_size.x *= scale;
+                p.font_size.y *= scale;
             }
             // Get font IDs
             let Self { ref fonts, .. } = &self;
@@ -207,7 +207,8 @@ impl<'a> UiRenderer {
                 .collect();
 
             // Calculate positions
-            let physical_position: PhysicalPosition<f32> = PhysicalPosition::from_logical(LogicalPosition::new(x, y), scale);
+            let physical_position: PhysicalPosition<f32> = PhysicalPosition::from_logical(
+                LogicalPosition::new(x, y), scale as f64);
             let mut x = physical_position.x;
             let mut y = physical_position.y;
 
@@ -219,7 +220,8 @@ impl<'a> UiRenderer {
                 Some(h) => h as f32,
                 None => std::f32::INFINITY,
             };
-            let physical_size: PhysicalSize<f32> = PhysicalSize::from_logical(LogicalSize::new(w, h), scale);
+            let physical_size: PhysicalSize<f32> = PhysicalSize::from_logical(
+                LogicalSize::new(w, h), scale as f64);
             let (w, h) = physical_size.into();
 
             if center_horizontally {
@@ -313,7 +315,7 @@ impl<'a> UiRenderer {
                 2.0 / win_w, 0.0, 0.0, 0.0,
                 0.0, -2.0 / win_h, 0.0, 0.0,
                 0.0, 0.0, 0.5, 0.0,
-                -1.0, 1.0, 0.5, 1.0,
+                -1.0, -1.0, 0.5, 1.0,
             ];
             let src_buffer = buffer_from_slice(
                 device,
@@ -346,6 +348,7 @@ impl<'a> UiRenderer {
                 device,
                 encoder,
                 buffers.texture_buffer,
+                //create_default_depth_stencil_attachment(buffers.depth_buffer),
                 data.physical_window_size.width,
                 data.physical_window_size.height,
             )

@@ -205,6 +205,11 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
                         window_data.focused = focused;
                         input_state.clear();
                     }
+                    ModifiersChanged(state) => {
+                        if input_state.process_modifiers_changed(state) {
+                            log::debug!("Modifiers changed: {:?}", state);
+                        }
+                    },
                     KeyboardInput { input, .. } => {
                         if input_state.process_keyboard_input(input) {
                             key_state_changes.push((input.scancode, input.state));
@@ -215,16 +220,14 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
                     MouseInput {
                         button,
                         state: element_state,
-                        modifiers,
                         ..
                     } => {
-                        if input_state.process_mouse_input(element_state, button, modifiers) {
+                        if input_state.process_mouse_input(element_state, button) {
                             mouse_state_changes.push((button, element_state));
                         }
                     }
                     // weird events
                     TouchpadPressure { .. } | AxisMotion { .. } | Touch(..) | ThemeChanged(_) => (),
-                    ModifiersChanged { .. } => (),  // TODO: handle this
                 }
             },
             DeviceEvent { event, .. } => {
