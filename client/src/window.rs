@@ -207,7 +207,7 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
                     }
                     ModifiersChanged(state) => {
                         if input_state.process_modifiers_changed(state) {
-                            log::debug!("Modifiers changed: {:?}", state);
+                            // log::debug!("Modifiers changed: {:?}", state);
                         }
                     },
                     KeyboardInput { input, .. } => {

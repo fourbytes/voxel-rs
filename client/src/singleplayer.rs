@@ -1,9 +1,9 @@
 use anyhow::Result;
-use log::info;
+use log::*;
 
 use voxel_rs_common::{
     block::Block,
-    network::{messages::ToClient, messages::ToServer, Client, ClientEvent},
+    network::{messages::ToClient, messages::ToServer, ClientIO, ClientEvent},
     player::RenderDistance,
     registry::Registry,
     world::{BlockPos, World},
@@ -45,7 +45,7 @@ pub struct SinglePlayer {
     item_registry: Registry<Item>,
     item_meshes: Vec<ItemMesh>,
     model_registry: Registry<VoxelModel>,
-    client: Box<dyn Client>,
+    client: Box<dyn ClientIO>,
     render_distance: RenderDistance,
     // TODO: put this in the settigs
     physics_simulation: ClientPhysicsSimulation,
@@ -56,14 +56,14 @@ pub struct SinglePlayer {
 }
 
 impl SinglePlayer {
-    pub fn new_factory(client: Box<dyn Client>) -> crate::window::StateFactory {
+    pub fn new_factory(client: Box<dyn ClientIO>) -> crate::window::StateFactory {
         Box::new(move |settings, device| Self::new(settings, device, client))
     }
 
     pub fn new(
         settings: &mut Settings,
         device: &wgpu::Device,
-        mut client: Box<dyn Client>,
+        mut client: Box<dyn ClientIO>,
     ) -> Result<(Box<dyn State>, wgpu::CommandBuffer)> {
         info!("Launching singleplayer");
         // Wait for data and player_id from the server
@@ -156,7 +156,17 @@ impl State for SinglePlayer {
         let mut chunks_to_mesh = HashSet::new();
         // Handle server messages
         loop {
-            match self.client.receive_event() {
+            // TODO: Remove this; debug logging
+            let event = self.client.receive_event();
+            match &event {
+                ClientEvent::NoEvent => (),
+                ClientEvent::ServerMessage(message) => match message {
+                    ToClient::Chunk(chunk, light_chunk) => trace!("Received chunk update: {:?} / {:?}", chunk.pos, light_chunk.pos),
+                    _ => (),
+                },
+                _ => trace!("Received event: {:?}", event)
+            }
+            match event {
                 ClientEvent::NoEvent => break,
                 ClientEvent::ServerMessage(message) => match message {
                     ToClient::Chunk(chunk, light_chunk) => {

@@ -29,7 +29,7 @@ pub enum ClientEvent {
 }
 
 /// An abstraction over a network server.
-pub trait Server {
+pub trait ServerIO {
     /// Receive the next event.
     fn receive_event(&mut self) -> ServerEvent;
     /// Send a message to a client. The message will be dropped if it can't be sent.
@@ -37,7 +37,7 @@ pub trait Server {
 }
 
 /// An abstraction over a network client.
-pub trait Client {
+pub trait ClientIO {
     /// Receive the next event
     fn receive_event(&mut self) -> ClientEvent;
     /// Send a message to the server. The message will be dropped if it can't be sent.

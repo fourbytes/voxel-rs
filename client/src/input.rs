@@ -65,6 +65,7 @@ impl InputState {
         }
     }
 
+    /// Process modifiers changed event, returning whether state has changed.
     pub fn process_modifiers_changed(&mut self, state: ModifiersState) -> bool {
         let previous_modifiers_state = self.modifiers_state;
         self.modifiers_state = state;
@@ -145,11 +146,11 @@ impl InputState {
     }
 }
 
-pub const MOVE_FORWARD: u32 = 17;
-pub const MOVE_LEFT: u32 = 30;
-pub const MOVE_BACKWARD: u32 = 31;
-pub const MOVE_RIGHT: u32 = 32;
-pub const MOVE_UP: u32 = 57;
-pub const MOVE_DOWN: u32 = 42;
-pub const TOGGLE_FLIGHT: u32 = 33;
-pub const TOGGLE_CULLING: u32 = 46;
+pub const MOVE_FORWARD: u32 = 17; // W
+pub const MOVE_LEFT: u32 = 30; // A
+pub const MOVE_BACKWARD: u32 = 31; // S
+pub const MOVE_RIGHT: u32 = 32; // D
+pub const MOVE_UP: u32 = 57; // SPACE
+pub const MOVE_DOWN: u32 = 42; // L_SHIFT
+pub const TOGGLE_FLIGHT: u32 = 33; // F
+pub const TOGGLE_CULLING: u32 = 46; // C

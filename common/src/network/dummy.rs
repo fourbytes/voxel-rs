@@ -34,7 +34,7 @@ pub fn new() -> (DummyClient, DummyServer) {
     )
 }
 
-impl super::Server for DummyServer {
+impl super::ServerIO for DummyServer {
     fn receive_event(&mut self) -> ServerEvent {
         if self.first_queried {
             self.first_queried = false;
@@ -52,7 +52,7 @@ impl super::Server for DummyServer {
     }
 }
 
-impl super::Client for DummyClient {
+impl super::ClientIO for DummyClient {
     fn receive_event(&mut self) -> ClientEvent {
         if self.first_queried {
             self.first_queried = false;

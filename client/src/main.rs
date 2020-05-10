@@ -2,7 +2,7 @@ use anyhow::Result;
 use log::{error, info};
 use std::path::Path;
 use voxel_rs_common::network::dummy;
-use voxel_rs_server::launch_server;
+use voxel_rs_server::server::Server;
 
 mod fps;
 mod gui;
@@ -24,10 +24,14 @@ fn main() -> Result<()> {
     let settings = settings::load_settings(&config_folder, &config_file)?;
     info!("Current settings: {:?}", settings);
 
-    let (client, server) = dummy::new();
+    let (client_io, server_io) = dummy::new();
 
     std::thread::spawn(move || {
-        if let Err(e) = launch_server(Box::new(server)) {
+        if let Err(e) = {
+            let server = Server::new(Box::new(server_io))
+                .expect("Failed to initialize server.");
+            server.launch()
+        } {
             // TODO: rewrite this error reporting
             error!(
                 "Error happened in the server code: {}\nPrinting chain:\n{}",
@@ -43,6 +47,6 @@ fn main() -> Result<()> {
 
     window::open_window(
         settings,
-        Box::new(singleplayer::SinglePlayer::new_factory(Box::new(client))),
+        Box::new(singleplayer::SinglePlayer::new_factory(Box::new(client_io))),
     )
 }

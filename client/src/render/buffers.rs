@@ -225,7 +225,7 @@ impl<K: Hash + Eq + Clone + std::fmt::Debug, T: Copy + std::fmt::Debug + 'static
         encoder: &mut wgpu::CommandEncoder,
         new_len: usize,
     ) {
-        log::debug!(
+        log::trace!(
             "Reallocating MultiBuffer<{}, {}> from length {} to length {}",
             std::any::type_name::<K>(),
             std::any::type_name::<T>(),
