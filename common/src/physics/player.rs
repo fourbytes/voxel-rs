@@ -2,6 +2,7 @@ use crate::physics::aabb::AABB;
 use crate::world::{BlockPos, World};
 use nalgebra::Vector3;
 
+pub const PLAYER_REACH: f64 = 10.0;
 const PLAYER_SIDE: f64 = 0.8;
 const PLAYER_HEIGHT: f64 = 1.8;
 const CAMERA_OFFSET: [f64; 3] = [0.4, 1.6, 0.4];
@@ -19,6 +20,13 @@ impl PhysicsPlayer {
     /// Get the position of the camera
     pub fn get_camera_position(&self) -> Vector3<f64> {
         self.aabb.pos + Vector3::from(CAMERA_OFFSET)
+    }
+
+    pub fn selected_block(&self, world: &World, yaw: f64, pitch: f64) -> Option<(BlockPos, usize)> {
+        let yaw = yaw.to_radians();
+        let pitch = pitch.to_radians();
+        let dir = Vector3::new(-yaw.sin() * pitch.cos(), pitch.sin(), -yaw.cos() * pitch.cos());
+        self.get_pointed_at(dir, PLAYER_REACH, world)
     }
 
     /// Ray trace to find the pointed block. Return the position of the block and the face (x/-x/y/-y/z/-z)

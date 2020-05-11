@@ -30,6 +30,8 @@ pub enum ToClient {
     GameData(Data),
     /// Send the chunk at some position
     Chunk(Arc<Chunk>, Arc<LightChunk>),
+    /// Send updated chunk lighting data
+    LightChunk(Arc<LightChunk>),
     /// Update the whole of the physics simulation
     // TODO: only send part of the physics simulation
     UpdatePhysics(ServerState),

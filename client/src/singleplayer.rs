@@ -24,11 +24,15 @@ use crate::{
 use nalgebra::Vector3;
 use std::collections::HashSet;
 use std::time::Instant;
+use std::sync::Arc;
+use voxel_rs_common::world::chunk::{ ChunkPos, ChunkPosXZ };
+use voxel_rs_common::world::{ LightChunk, HighestOpaqueBlock };
 use voxel_rs_common::data::vox::VoxelModel;
 use voxel_rs_common::debug::{send_debug_info, send_perf_breakdown, DebugInfo};
 use voxel_rs_common::item::{Item, ItemMesh};
 use voxel_rs_common::physics::simulation::{ClientPhysicsSimulation, PhysicsState, ServerState};
 use voxel_rs_common::time::BreakdownCounter;
+use voxel_rs_common::light::{ compute_light, ChunkLightingState };
 use winit::event::{ElementState, MouseButton};
 use crate::gui::Gui;
 
@@ -37,10 +41,10 @@ pub struct SinglePlayer {
     fps_counter: FpsCounter,
     ui: Ui,
     ui_renderer: UiRenderer,
+    chunk_lighting_state: ChunkLightingState,
     gui: Gui,
     world: World,
     world_renderer: WorldRenderer,
-    #[allow(dead_code)] // TODO: remove this
     block_registry: Registry<Block>,
     item_registry: Registry<Item>,
     item_meshes: Vec<ItemMesh>,
@@ -110,6 +114,8 @@ impl SinglePlayer {
             &data.models,
         );
 
+        let chunk_lighting_state = ChunkLightingState::new();
+
         Ok((
             Box::new(Self {
                 fps_counter: FpsCounter::new(),
@@ -118,6 +124,7 @@ impl SinglePlayer {
                 gui: Gui::new(),
                 world: World::new(),
                 world_renderer,
+                chunk_lighting_state,
                 block_registry: data.blocks,
                 model_registry: data.models,
                 item_registry: data.items,
@@ -139,6 +146,58 @@ impl SinglePlayer {
             }),
             encoder.finish(),
         ))
+    }
+
+    pub fn update_chunk_render(&mut self, chunk_pos: ChunkPos, immediate: bool) {
+        if self.world.has_chunk(chunk_pos) {
+            assert_eq!(self.world.has_light_chunk(chunk_pos), true);
+            if immediate {
+                self.world_renderer.update_chunk(&self.world, chunk_pos);
+            } else {
+                self.world_renderer.queue_update_chunk(&self.world, chunk_pos);
+            }
+        }
+    }
+
+    pub fn update_chunk_lighting(&mut self, chunk_pos: ChunkPos) {
+        if self.world.has_chunk(chunk_pos) {
+            let mut chunks = Vec::with_capacity(3*3*3);
+            let mut highest_opaque_blocks = Vec::with_capacity(3*3);
+
+            for i in -1..=1 {
+                for k in -1..=1 {
+                    let pos: ChunkPosXZ = chunk_pos.offset(i, 0, k).into();
+                    highest_opaque_blocks.push(
+                        (*self.world.highest_opaque_block
+                            .entry(pos)
+                            .or_insert_with(|| Arc::new(HighestOpaqueBlock::new(pos))))
+                            .clone(),
+                    );
+                }
+            }
+
+            for i in -1..=1 {
+                for j in -1..=1 {
+                    for k in -1..=1 {
+                        let pos = chunk_pos.offset(i, j, k);
+                        chunks.push(self.world.get_chunk(pos));
+                    }
+                }
+            }
+
+            debug!("Recomputing light for chunk: {:?}", chunk_pos);
+
+            self.world.set_light_chunk(Arc::new(LightChunk {
+                light: compute_light(
+                    chunks,
+                    highest_opaque_blocks,
+                    &mut self.chunk_lighting_state.queue_reuse,
+                    &mut self.chunk_lighting_state.light_data_reuse,
+                    &mut self.chunk_lighting_state.opaque_reuse
+                ).light_level.to_vec(),
+                pos: chunk_pos
+            }));
+        }
     }
 }
 
@@ -169,6 +228,9 @@ impl State for SinglePlayer {
             match event {
                 ClientEvent::NoEvent => break,
                 ClientEvent::ServerMessage(message) => match message {
+                    ToClient::LightChunk(light_chunk) => {
+                        self.world.set_light_chunk(light_chunk);
+                    }
                     ToClient::Chunk(chunk, light_chunk) => {
                         // TODO: make sure this only happens once
                         let chunk_pos = chunk.pos;
@@ -213,10 +275,7 @@ impl State for SinglePlayer {
         self.world_renderer.update_position(player_chunk);
         // Send chunk updates to meshing
         for chunk_pos in chunks_to_mesh.into_iter() {
-            if self.world.has_chunk(chunk_pos) {
-                assert_eq!(self.world.has_light_chunk(chunk_pos), true);
-                self.world_renderer.update_chunk(&self.world, chunk_pos);
-            }
+            self.update_chunk_render(chunk_pos, false);
         }
         self.client_timing.record_part("Send chunks to meshing");
 
@@ -407,13 +466,36 @@ impl State for SinglePlayer {
         changes: Vec<(winit::event::MouseButton, winit::event::ElementState)>,
     ) {
         for (button, state) in changes.iter() {
-            let pp = self.physics_simulation.get_player();
+            let pp = self.physics_simulation.get_player().clone();
             let y = self.yaw_pitch.yaw;
             let p = self.yaw_pitch.pitch;
             match *button {
                 MouseButton::Left => match *state {
                     ElementState::Pressed => {
-                        self.client.send(ToServer::BreakBlock(pp.aabb.pos, y, p));
+                        if let Some(block_pos) = pp.selected_block(&self.world, y, p) {
+                            let block_pos = block_pos.0;
+                            match self.world.get_block(block_pos) {
+                                0 => return,
+                                _ => {
+                                    if let Some(new_chunk) = self.world.set_block(block_pos, None) {
+                                        // TODO: Revert the chunk if breaking it
+                                        // fails on the server side.
+                                        let chunk_pos = new_chunk.pos;
+                                        self.world.set_chunk(Arc::new(new_chunk));
+                                        for x in -1..=1 {
+                                            for y in -1..=1 {
+                                                for z in -1..=1 {
+                                                    let chunk_pos = chunk_pos.offset(x, y, z);
+                                                    self.update_chunk_render(chunk_pos, true);
+                                                }
+                                            }
+                                        }
+                                        self.update_chunk_lighting(chunk_pos);
+                                        self.client.send(ToServer::BreakBlock(pp.aabb.pos, y, p));
+                                    }
+                                }
+                            }
+                        }
                     }
                     _ => {}
                 },

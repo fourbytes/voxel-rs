@@ -1,9 +1,11 @@
 //! World rendering
+use log::*;
 
+use std::collections::HashMap;
 use super::buffers::MultiBuffer;
 use super::frustum::Frustum;
 use super::init::{create_default_pipeline, load_glsl_shader, ShaderStage};
-use super::world::meshing_worker::{MeshingState, MeshingWorker};
+use super::world::meshing_worker::{MeshingState, MeshingWorker, ChunkMesh};
 use super::{ to_u8_slice, buffer_from_slice };
 use crate::texture::load_image;
 use crate::window::WindowBuffers;
@@ -15,6 +17,7 @@ use voxel_rs_common::debug::send_debug_info;
 use voxel_rs_common::registry::Registry;
 use voxel_rs_common::world::chunk::ChunkPos;
 use voxel_rs_common::world::{BlockPos, World};
+use voxel_rs_common::worker::WorkerState;
 
 mod meshing;
 mod meshing_worker;
@@ -26,6 +29,9 @@ pub use self::model::Model;
 pub struct WorldRenderer {
     // Chunk meshing
     meshing_worker: MeshingWorker,
+    immediate_meshes: HashMap<ChunkPos, ChunkMesh>,
+    // State for immediate chunk meshing (eg. block breaking)
+    meshing_state: MeshingState,
     // View-projection matrix
     uniform_view_proj: wgpu::Buffer,
     // Model matrix
@@ -196,8 +202,12 @@ impl WorldRenderer {
             model_vertex_buffers.update(device, encoder, mesh_id, &vertices);
         }
 
+        let meshing_state = MeshingState::new(block_meshes.clone());
+
         Self {
             meshing_worker: MeshingWorker::new(MeshingState::new(block_meshes), "Meshing".to_owned()),
+            meshing_state,
+            immediate_meshes: HashMap::new(),
             uniform_view_proj,
             uniform_model,
             chunk_index_buffers: MultiBuffer::with_capacity(device, 1000, wgpu::BufferUsage::INDEX),
@@ -433,6 +443,12 @@ impl WorldRenderer {
     }
 
     pub fn update_chunk(&mut self, world: &World, pos: ChunkPos) {
+        self.meshing_worker.dequeue(pos);
+        self.immediate_meshes.insert(pos, self.meshing_state.compute(
+            pos, self::meshing::ChunkMeshData::create_from_world(world, pos)));
+    }
+
+    pub fn queue_update_chunk(&mut self, world: &World, pos: ChunkPos) {
         self.meshing_worker
             .enqueue(pos, self::meshing::ChunkMeshData::create_from_world(world, pos));
     }

@@ -1,3 +1,4 @@
+use log::*;
 use self::chunk::{Chunk, ChunkPos, CHUNK_SIZE};
 use crate::world::chunk::ChunkPosXZ;
 use crate::{
@@ -203,6 +204,23 @@ impl World {
         match self.get_chunk(pos.containing_chunk_pos()) {
             None => 0,
             Some(chunk) => chunk.get_block_at(pos.pos_in_containing_chunk()),
+        }
+    }
+
+    /// Set block at position `pos` in the world. Provided as a convenience method, returns the new
+    /// chunk if sucessful.
+    pub fn set_block(&mut self, pos: BlockPos, block: Option<BlockId>) -> Option<Chunk> {
+        if let Some(chunk) = self.get_chunk(pos.containing_chunk_pos()) {
+            let mut new_chunk = (*chunk).clone();
+            new_chunk.set_block_at(
+                pos.pos_in_containing_chunk(),
+                match block {
+                    None => 0,
+                    Some(block_id) => block_id
+                });
+            Some(new_chunk)
+        } else {
+            None
         }
     }
 

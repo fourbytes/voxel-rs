@@ -1,11 +1,11 @@
-use crate::light::{ChunkLightingWorker, ChunkLightingState, ChunkLightingData};
+use crate::light::{ChunkLightingWorker, ChunkLightingData};
 use crate::worldgen::{WorldGenerationWorker, WorldGenerationState};
 use anyhow::Result;
 use nalgebra::Vector3;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Instant;
-use voxel_rs_common::block::BlockId;
+use voxel_rs_common::light::ChunkLightingState;
 use voxel_rs_common::physics::aabb::AABB;
 use voxel_rs_common::physics::player::PhysicsPlayer;
 use voxel_rs_common::{
@@ -16,7 +16,7 @@ use voxel_rs_common::{
         ServerIO, ServerEvent,
     },
     physics::simulation::ServerPhysicsSimulation,
-    player::{RenderDistance, PlayerId},
+    player::PlayerId,
     world::{
         chunk::{ ChunkPos, ChunkPosXZ, Chunk },
         BlockPos, World,
@@ -38,7 +38,7 @@ pub struct Server {
     world: Box<World>,
     players: HashMap<PlayerId, PlayerData>,
     generating_chunks: HashSet<ChunkPos>,
-    chunk_updates: HashSet<ChunkPos>,
+    updated_chunks: HashSet<ChunkPos>,
     chunk_lighting_updates: HashSet<ChunkPos>
 }
 
@@ -64,7 +64,7 @@ impl Server {
             world: Box::new(World::new()),
             players: HashMap::new(),
             generating_chunks: HashSet::new(),
-            chunk_updates: HashSet::new(),
+            updated_chunks: HashSet::new(),
             chunk_lighting_updates: HashSet::new()
         })
     }
@@ -79,7 +79,7 @@ impl Server {
 
     fn save_chunk(&mut self, chunk: Chunk) {
         let chunk_pos = chunk.pos;
-        self.chunk_updates.insert(chunk_pos);
+        self.updated_chunks.insert(chunk_pos);
         self.world.set_chunk(Arc::new(chunk));
 
         if self.world.update_highest_opaque_block(chunk_pos) {
@@ -106,8 +106,7 @@ impl Server {
     }
 
     fn tick(&mut self) {
-        self.chunk_updates = HashSet::new();
-        self.chunk_lighting_updates = HashSet::new();
+        self.updated_chunks = HashSet::new();
         self.timing.start_frame();
         
         // Handle messages
@@ -158,17 +157,8 @@ impl Server {
                             },
                             velocity: Vector3::zeros(),
                         };
-                        let y = yaw.to_radians();
-                        let p = pitch.to_radians();
-                        let dir = Vector3::new(-y.sin() * p.cos(), p.sin(), -y.cos() * p.cos());
-                        // TODO: don't hardcode max dist
-                        if let Some((block, _face)) =
-                            physics_player.get_pointed_at(dir, 10.0, &self.world)
-                        {
-                            let chunk_pos = block.containing_chunk_pos();
-                            if self.world.has_chunk(chunk_pos) {
-                                let mut new_chunk = (*self.world.get_chunk(chunk_pos).unwrap()).clone();
-                                new_chunk.set_block_at(block.pos_in_containing_chunk(), 0);
+                        if let Some((block_pos, _face)) = physics_player.selected_block(&self.world, yaw, pitch) {
+                            if let Some(new_chunk) = self.world.set_block(block_pos, None) {
                                 self.save_chunk(new_chunk);
                             }
                         }
@@ -243,9 +233,10 @@ impl Server {
         self.timing.record_part("Receive generated chunks");
 
         // Receive lighted chunks
+        let mut updated_light_chunks = HashMap::new();
         for light_chunk in self.light_worker.get_processed().into_iter() {
+            updated_light_chunks.insert(light_chunk.pos, light_chunk.clone());
             self.world.set_light_chunk(light_chunk);
-            // TODO: send to player???
         }
         self.timing.record_part("Receive lighted chunks");
 
@@ -310,7 +301,7 @@ impl Server {
             // Send new chunks
             for chunk_pos in data.render_distance.iterate_around_player(player_chunk) {
                 // The player hasn't received the chunk yet
-                if !data.loaded_chunks.contains(&chunk_pos) || self.chunk_updates.contains(&chunk_pos) {
+                if !data.loaded_chunks.contains(&chunk_pos) || self.updated_chunks.contains(&chunk_pos) {
                     if let Some(chunk) = self.world.get_chunk(chunk_pos) {
                         // Send it to the player if it's in the world
                         self.io.send(
@@ -328,6 +319,10 @@ impl Server {
                             self.worldgen_worker.enqueue(chunk_pos, ());
                         }
                     }
+                }
+
+                if let Some(light_chunk) = updated_light_chunks.get(&chunk_pos) {
+                    self.io.send(*player, ToClient::LightChunk(light_chunk.clone()))
                 }
             }
             // Drop chunks that are too far away

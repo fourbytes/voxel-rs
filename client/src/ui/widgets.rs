@@ -114,7 +114,6 @@ where
         if let quint::MouseButton::Left = button {
             if let quint::ButtonState::Pressed = state {
                 if layout.is_position_inside(cursor_position) {
-                    log::info!("Clicked inside! {:?}", layout);
                     messages.push(self.message.clone());
                 }
             }

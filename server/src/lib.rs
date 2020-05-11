@@ -5,7 +5,7 @@ use voxel_rs_common::{
     world::chunk::ChunkPos,
 };
 
-mod light;
+pub mod light;
 mod worldgen;
 pub mod server;
 

@@ -1,6 +1,7 @@
 use crate::world::chunk::{Chunk, CHUNK_SIZE};
 use crate::world::HighestOpaqueBlock;
 use std::sync::Arc;
+use crate::collections::zero_initialized_vec;
 
 // TODO : Add block that are source of light
 
@@ -12,6 +13,22 @@ impl LightData {
     pub fn new() -> Self {
         Self {
             light_level: [0; (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE) as usize],
+        }
+    }
+}
+
+pub struct ChunkLightingState {
+    pub queue_reuse: FastBFSQueue,
+    pub light_data_reuse: Vec<u8>,
+    pub opaque_reuse: Vec<bool>,
+}
+
+impl ChunkLightingState {
+    pub fn new() -> Self {
+        Self {
+            queue_reuse: FastBFSQueue::new(),
+            light_data_reuse: unsafe { zero_initialized_vec((CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 27) as usize) },
+            opaque_reuse: unsafe { zero_initialized_vec((CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 27) as usize) },
         }
     }
 }
