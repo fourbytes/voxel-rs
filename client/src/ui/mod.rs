@@ -1,10 +1,8 @@
-use self::widgets::{Text, WithStyle};
+use self::widgets::WithStyle;
 use crate::ui::widgets::Button;
 use crate::window::WindowData;
 use anyhow::Result;
 use quint::{wt, Size, Style, WidgetTree};
-use std::collections::BTreeMap;
-use voxel_rs_common::debug::DebugInfo;
 use wgpu_glyph::ab_glyph::PxScale;
 use winit::dpi::LogicalPosition;
 
@@ -48,7 +46,7 @@ impl Ui {
     }
 
     /// Rebuild the Ui if it changed
-    pub fn rebuild(&mut self, debug_info: &mut DebugInfo, data: &WindowData) -> Result<()> {
+    pub fn rebuild(&mut self, data: &WindowData) -> Result<()> {
         self.update();
 
         let mut layers = Vec::new();
@@ -76,60 +74,6 @@ impl Ui {
         );
 
         Ok(())
-    }
-
-    fn draw_debug_info(
-        &self,
-        debug_info: BTreeMap<String, BTreeMap<String, String>>,
-    ) -> WidgetTree<PrimitiveBuffer, Message> {
-        let white = [1.0, 1.0, 1.0, 1.0];
-        let mut text = debug_info
-            .into_iter()
-            .map(|(section, messages)| {
-                vec![
-                    TextPart {
-                        text: format!("\n{}", section),
-                        font_size: PxScale::from(25.0),
-                        color: white,
-                        font: Some("medium_italic".to_owned()),
-                    },
-                    TextPart {
-                        text: " DEBUG INFO\n".to_owned(),
-                        font_size: PxScale::from(25.0),
-                        color: white,
-                        font: Some("regular".to_owned()),
-                    },
-                    TextPart {
-                        text: messages
-                            .into_iter()
-                            .map(|(_id, m)| m)
-                            .collect::<Vec<String>>()
-                            .join("\n"),
-                        font_size: PxScale::from(20.0),
-                        color: white,
-                        font: Some("regular".to_owned()),
-                    },
-                ]
-            })
-            .flatten()
-            .collect::<Vec<TextPart>>();
-
-        text.insert(
-            0,
-            TextPart {
-                text: format!("VOXEL-RS\n"),
-                font_size: PxScale::from(40.0),
-                color: white,
-                font: Some("medium".to_owned()),
-            },
-        );
-
-        wt! {
-            WithStyle { style: Style::default().percent_size(1.0, 1.0) },
-            wt! {
-                Text { text },
-            },
-        }
     }
 
     fn draw_menu(&self) -> WidgetTree<PrimitiveBuffer, Message> {

@@ -108,6 +108,7 @@ impl<'a> ButtonBuilder<'a> {
     /// Build the button
     pub fn build(self) -> bool {
         let Self { gui, id, x, y, w, h, text } = self;
+
         // Check if the mouse is inside the button
         if gui.is_mouse_inside(x, y, w, h) {
             // Then the button is hot
@@ -126,16 +127,16 @@ impl<'a> ButtonBuilder<'a> {
             if gui.active_item == id {
                 // Hot and active
                 draw_pos = (x+2, y+2);
-                button_color = [0.7, 0.7, 0.7, 1.0];
+                button_color = [0.4, 0.4, 0.5, 1.0];
             } else {
                 // Just hot
                 draw_pos = (x, y);
-                button_color = [0.7, 0.7, 0.7, 1.0];
+                button_color = [0.5, 0.5, 0.6, 1.0];
             }
         } else {
             // Not hot but might be active
             draw_pos = (x, y);
-            button_color = [0.8, 0.8, 0.8, 1.0];
+            button_color = [0.6, 0.6, 0.7, 1.0];
         }
         gui.primitives.draw_rect(draw_pos.0, draw_pos.1, w, h, button_color, 0.01);
         if let Some((text, color)) = text {

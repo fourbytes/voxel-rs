@@ -31,8 +31,8 @@ pub struct WindowData {
     pub logical_window_size: LogicalSize<f64>,
     /// Physical size of the window.
     pub physical_window_size: PhysicalSize<u32>,
-    /// HiDpi factor of the window.
-    pub hidpi_factor: f64,
+    /// Scale factor of the window (DPI).
+    pub scale_factor: f64,
     /// `true` if the window is currently focused
     pub focused: bool,
 }
@@ -93,7 +93,6 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
     let window = Window::new(&event_loop).expect("Failed to create window");
     window.set_title(&window_title);
     // Create the Surface, i.e. the render target of the program
-    let hidpi_factor = window.scale_factor();
     let physical_window_size = window.inner_size();
     info!("Creating the swap chain");
     let instance = wgpu::Instance::new(wgpu::BackendBit::PRIMARY);
@@ -156,12 +155,12 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
 
     let mut window_data = {
         let physical_window_size = window.inner_size();
-        let hidpi_factor = window.scale_factor();
-        let logical_window_size = physical_window_size.to_logical(hidpi_factor);
+        let scale_factor = window.scale_factor();
+        let logical_window_size = physical_window_size.to_logical(scale_factor);
         WindowData {
             logical_window_size,
             physical_window_size,
-            hidpi_factor,
+            scale_factor,
             focused: false,
         }
     };
@@ -193,7 +192,15 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
             WindowEvent { event, .. } => {
                 use winit::event::WindowEvent::*;
                 match event {
-                    Resized(_) | ScaleFactorChanged { .. } => window_resized = true,
+                    Resized(_) => {
+                        log::debug!("Window resized.");
+
+                        window_resized = true
+                    },
+                    ScaleFactorChanged { scale_factor, .. } => {
+                        log::info!("Scale factor changed to {:?}", scale_factor);
+                        window_data.scale_factor = scale_factor;
+                    },
                     Moved(_) => (),
                     CloseRequested | Destroyed => *control_flow = ControlFlow::Exit,
                     DroppedFile(_) | HoveredFile(_) | HoveredFileCancelled => (),
@@ -207,7 +214,7 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
                             key_state_changes.push((input.scancode, input.state));
                         }
                     }
-                    CursorMoved { position, .. } => state.handle_cursor_movement(position.to_logical(hidpi_factor)),
+                    CursorMoved { position, .. } => state.handle_cursor_movement(position.to_logical(window_data.scale_factor)),
                     CursorEntered { .. } | CursorLeft { .. } | MouseWheel { .. } => (),
                     MouseInput {
                         button,
@@ -240,8 +247,9 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
                     info!("The window was resized, adjusting buffers...");
                     // Update window data
                     window_data.physical_window_size = window.inner_size();
-                    window_data.hidpi_factor = window.scale_factor();
-                    window_data.logical_window_size = window_data.physical_window_size.to_logical(window_data.hidpi_factor);
+                    window_data.logical_window_size = window_data
+                        .physical_window_size
+                        .to_logical(window_data.scale_factor);
                     // Update SwapChain
                     sc_desc.width = window_data.physical_window_size.width;
                     sc_desc.height = window_data.physical_window_size.height;
@@ -286,15 +294,16 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
                 if window_flags.grab_cursor && window_data.focused {
                     window.set_cursor_visible(false);
                     let PhysicalSize { width, height } = window_data.physical_window_size;
-                    let center_pos = PhysicalPosition { x : width / 2, y : height / 2 };
                     match window.set_cursor_grab(true) {
                         Err(err) => warn!("Failed to grab cursor ({:?})", err),
                         _ => (),
                     }
+                    /* TODO: This results in NotSupportedError on Wayland.
+                    let center_pos = PhysicalPosition { x : width / 2, y : height / 2 };
                     match window.set_cursor_position(center_pos) {
                         Err(err) => warn!("Failed to center cursor ({:?})", err),
                         _ => (),
-                    }
+                    } */
                 } else {
                     window.set_cursor_visible(true);
                     match window.set_cursor_grab(false) {

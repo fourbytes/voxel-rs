@@ -119,13 +119,13 @@ impl<'a> UiRenderer {
         buffers: WindowBuffers<'a>,
         device: &mut wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
-        data: &WindowData,
-        ui: &quint::Ui<PrimitiveBuffer, Message>,
+        window_data: &WindowData,
+        _ui: &quint::Ui<PrimitiveBuffer, Message>,
         gui: &mut crate::gui::Gui,
         draw_crosshair: bool,
     ) {
         // Render test dropdown
-        let mut primitive_buffer = gui.drain_primitives();
+        let primitive_buffer = gui.drain_primitives();
 
         //ui.render(&mut primitive_buffer);
 
@@ -188,7 +188,7 @@ impl<'a> UiRenderer {
             center_horizontally, center_vertically,
         } in primitive_buffer.text.into_iter()
         {
-            let dpi = data.hidpi_factor as f32;
+            let dpi = window_data.scale_factor as f32;
 
             // Apply DPI to font size
             for p in parts.iter_mut() {
@@ -255,8 +255,8 @@ impl<'a> UiRenderer {
         // Crosshair
         if draw_crosshair {
             let (cx, cy) = (
-                data.logical_window_size.width as f32 / 2.0,
-                data.logical_window_size.height as f32 / 2.0,
+                window_data.logical_window_size.width as f32 / 2.0,
+                window_data.logical_window_size.height as f32 / 2.0,
             );
             const HALF_HEIGHT: f32 = 15.0;
             const HALF_WIDTH: f32 = 2.0;
@@ -305,8 +305,8 @@ impl<'a> UiRenderer {
         // Draw rectangles
         {
             let (win_w, win_h) = (
-                data.logical_window_size.width,
-                data.logical_window_size.height,
+                window_data.logical_window_size.width,
+                window_data.logical_window_size.height,
             );
             // Update the uniform buffer to map (w, h) coordinates to [-1, 1]
             let transformation_matrix = [
@@ -361,8 +361,8 @@ impl<'a> UiRenderer {
                 encoder,
                 buffers.texture_buffer,
                 //create_default_depth_stencil_attachment(buffers.depth_buffer),
-                data.physical_window_size.width,
-                data.physical_window_size.height,
+                window_data.physical_window_size.width,
+                window_data.physical_window_size.height,
             )
             .expect("couldn't draw queued glyphs");
     }

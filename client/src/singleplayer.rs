@@ -314,7 +314,7 @@ impl State for SinglePlayer {
         crate::render::clear_depth(&mut encoder, buffers);
 
         // Draw ui
-        self.ui.rebuild(&mut self.debug_info, data)?;
+        self.ui.rebuild(data)?;
         self.gui.prepare();
         crate::gui::experiments::render_debug_info(&mut self.gui, &mut self.debug_info);
         self.gui.finish();
