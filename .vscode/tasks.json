@@ -1,0 +1,22 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "cargo",
+			"subcommand": "build --release",
+			"problemMatcher": [
+				"$rustc"
+			],
+			"group": "build",
+			"label": "Rust: cargo build - voxel-rs"
+		},
+		{
+			"type": "cargo",
+			"subcommand": "run --release",
+			"problemMatcher": [
+				"$rustc"
+			],
+			"label": "Rust: cargo run - voxel-rs"
+		}
+	]
+}
