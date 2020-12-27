@@ -6,7 +6,7 @@ use super::BlockContainer;
 
 const PLAYER_SIDE: f64 = 0.8;
 const PLAYER_HEIGHT: f64 = 1.8;
-const CAMERA_OFFSET: [f64; 3] = [0.4, 1.6, 0.4];
+const CAMERA_OFFSET: [f64; 3] = [0.0, 1.6, 0.0];
 
 fn aabb_intersects_world<BC: BlockContainer>(world: &BC, aabb: &AABB<f64>) -> bool {
     let mins = aabb.mins.map(|c| c.floor() as i64);
@@ -122,7 +122,7 @@ impl PhysicsPlayer {
     /// Get the coords of the player.
     pub fn coords(&self) -> Point3<f64> {
         let mut c = self.aabb.center();
-        c.coords.y -= PLAYER_HEIGHT / 2.0;
+        c.coords.y = self.aabb.mins.coords.y;
         c
     }
 
