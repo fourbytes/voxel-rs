@@ -1,5 +1,5 @@
 use bitvec::prelude::*;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 pub type Salt = u32;
@@ -17,17 +17,37 @@ pub const RESEND_DELAY: Duration = Duration::from_millis(100);
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ToClientPacket {
-    Challenge { client_salt: Salt, server_salt: Salt },
-    Message { salts_xor: Salt, messages: Vec<Message> },
-    Disconnect { salts_xor: Salt, message: String }, // salts_xor is just the client salt if the server is full
+    Challenge {
+        client_salt: Salt,
+        server_salt: Salt,
+    },
+    Message {
+        salts_xor: Salt,
+        messages: Vec<Message>,
+    },
+    Disconnect {
+        salts_xor: Salt,
+        message: String,
+    }, // salts_xor is just the client salt if the server is full
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ToServerPacket {
-    TryConnect { client_salt: Salt, padding: [[u8; 32]; 32] },
-    ChallengeResponse { salts_xor: Salt, padding: [[u8; 32]; 32] },
-    Message { salts_xor: Salt, messages: Vec<Message> },
-    Disconnect { salts_xor: Salt },
+    TryConnect {
+        client_salt: Salt,
+        padding: [[u8; 32]; 32],
+    },
+    ChallengeResponse {
+        salts_xor: Salt,
+        padding: [[u8; 32]; 32],
+    },
+    Message {
+        salts_xor: Salt,
+        messages: Vec<Message>,
+    },
+    Disconnect {
+        salts_xor: Salt,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -35,16 +55,13 @@ pub enum Message {
     /// Unreliable message
     Unreliable(Vec<u8>),
     /// Reliable message
-    Reliable {
-        sequence: Sequence,
-        data: Vec<u8>,
-    },
+    Reliable { sequence: Sequence, data: Vec<u8> },
     /// Acks for reliable messages
     /// The i-th bit in `acks` is 1 if the message with sequence number `first_sequence + i` was received, and 0 otherwise.
     ReliableAcks {
         first_sequence: Sequence,
         acks: SimpleBitSet,
-    }
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize)]

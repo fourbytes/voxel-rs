@@ -1,9 +1,9 @@
 use crate::{input::InputState, settings::Settings};
 use anyhow::Result;
+use futures::executor::block_on;
 use log::{info, warn};
 use std::time::Instant;
 use wgpu::Device;
-use futures::executor::block_on;
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
 use winit::event::{ElementState, MouseButton};
 use winit::event_loop::ControlFlow;
@@ -104,11 +104,14 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
     }))
     .expect("Failed to create adapter");
     // TODO: device should be immutable
-    let (mut device, queue) = block_on(adapter.request_device(&wgpu::DeviceDescriptor {
-        features: wgpu::Features::empty(),
-        limits: wgpu::Limits::default(),
-        shader_validation: true
-    }, None))
+    let (mut device, queue) = block_on(adapter.request_device(
+        &wgpu::DeviceDescriptor {
+            features: wgpu::Features::empty(),
+            limits: wgpu::Limits::default(),
+            shader_validation: true,
+        },
+        None,
+    ))
     .expect("Failed to request device");
     // Create the SwapChain
     let mut sc_desc = wgpu::SwapChainDescriptor {
@@ -192,13 +195,11 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
             WindowEvent { event, .. } => {
                 use winit::event::WindowEvent::*;
                 match event {
-                    Resized(_) => {
-                        window_resized = true
-                    },
+                    Resized(_) => window_resized = true,
                     ScaleFactorChanged { scale_factor, .. } => {
                         log::info!("Scale factor changed to {:?}", scale_factor);
                         window_data.scale_factor = scale_factor;
-                    },
+                    }
                     Moved(_) => (),
                     CloseRequested | Destroyed => *control_flow = ControlFlow::Exit,
                     DroppedFile(_) | HoveredFile(_) | HoveredFileCancelled => (),
@@ -212,7 +213,9 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
                             key_state_changes.push((input.scancode, input.state));
                         }
                     }
-                    CursorMoved { position, .. } => state.handle_cursor_movement(position.to_logical(window_data.scale_factor)),
+                    CursorMoved { position, .. } => {
+                        state.handle_cursor_movement(position.to_logical(window_data.scale_factor))
+                    }
                     CursorEntered { .. } | CursorLeft { .. } | MouseWheel { .. } => (),
                     MouseInput {
                         button,
@@ -225,9 +228,11 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
                     }
                     // weird events
                     TouchpadPressure { .. } | AxisMotion { .. } | Touch(..) | ThemeChanged(_) => (),
-                    ModifiersChanged(modifiers_state) => input_state.set_modifiers_state(modifiers_state),
+                    ModifiersChanged(modifiers_state) => {
+                        input_state.set_modifiers_state(modifiers_state)
+                    }
                 }
-            },
+            }
             DeviceEvent { event, .. } => {
                 if !window_data.focused {
                     return;
@@ -235,7 +240,7 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
                 use winit::event::DeviceEvent::*;
                 match event {
                     MouseMotion { delta } => state.handle_mouse_motion(&settings, delta),
-                    _ => ()
+                    _ => (),
                 }
             }
             /* MAIN LOOP TICK */
@@ -296,7 +301,10 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
                         Err(err) => log::warn!("Failed to grab cursor ({:?})", err),
                         _ => (),
                     }
-                    let center_pos = PhysicalPosition { x : width / 2, y : height / 2 };
+                    let center_pos = PhysicalPosition {
+                        x: width / 2,
+                        y: height / 2,
+                    };
                     match window.set_cursor_position(center_pos) {
                         Err(err) => log::trace!("Failed to center cursor ({:?})", err),
                         _ => (),
@@ -326,7 +334,9 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
                 }
 
                 // Render frame
-                let swap_chain_output = swap_chain.get_current_frame().expect("Failed to unwrap swap chain output.");
+                let swap_chain_output = swap_chain
+                    .get_current_frame()
+                    .expect("Failed to unwrap swap chain output.");
                 let (state_transition, commands) = state
                     .render(
                         &settings,

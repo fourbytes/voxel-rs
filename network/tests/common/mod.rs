@@ -1,12 +1,12 @@
+use super::SocketAddr;
 use rand::{
-    thread_rng,
     distributions::{Distribution, Uniform},
+    thread_rng,
 };
 use std::collections::{BinaryHeap, HashMap};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use voxel_rs_network::Socket;
-use super::SocketAddr;
 
 lazy_static::lazy_static! {
     static ref PACKET_QUEUES: Mutex<HashMap<SocketAddr, BinaryHeap<SentPacket>>> = Mutex::new(HashMap::new());
@@ -52,7 +52,7 @@ pub const NO_LOSS_CONFIG: DummySocketConfig = DummySocketConfig {
     packet_loss: 0.0,
     latency: Duration::from_millis(30),
     max_jitter: Duration::from_millis(30),
-};  
+};
 
 pub struct DummySocket {
     addr: SocketAddr,
@@ -87,7 +87,7 @@ impl Socket for DummySocket {
                         Some((data_len, msg.sender))
                     };
                 }
-            } 
+            }
         }
         None
     }
@@ -95,15 +95,20 @@ impl Socket for DummySocket {
     fn send(&mut self, buf: &[u8], addr: SocketAddr) -> Option<()> {
         let mut rng = thread_rng();
         if self.packet_loss_dist.sample(&mut rng) >= self.packet_loss {
-            PACKET_QUEUES.lock().unwrap().entry(addr).or_default().push(SentPacket {
-                arrival_time: Instant::now() + Duration::from_secs_f64(self.delay_dist.sample(&mut rng)),
-                sender: self.addr,
-                data: Vec::from(buf),
-            });
+            PACKET_QUEUES
+                .lock()
+                .unwrap()
+                .entry(addr)
+                .or_default()
+                .push(SentPacket {
+                    arrival_time: Instant::now()
+                        + Duration::from_secs_f64(self.delay_dist.sample(&mut rng)),
+                    sender: self.addr,
+                    data: Vec::from(buf),
+                });
         }
         Some(())
     }
-    
 }
 
 // TODO: allow sending packets from unknown sources

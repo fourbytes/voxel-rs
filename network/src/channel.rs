@@ -1,8 +1,5 @@
-use std::{
-    collections::VecDeque,
-    time::Instant,
-};
 use super::types::*;
+use std::{collections::VecDeque, time::Instant};
 
 struct QueuedPacket {
     pub sequence: Sequence,
@@ -51,7 +48,7 @@ impl Sender {
         for packet in self.reliable_packets.iter_mut() {
             // Don't send a packet the receiver can't buffer
             if packet.sequence >= max_sequence {
-                break
+                break;
             }
             // Resend packet if enough time has elapsed
             let now = Instant::now();
@@ -66,7 +63,7 @@ impl Sender {
                     }
                 } else {
                     // Break if bandwidth is exceeded
-                    break
+                    break;
                 }
             }
         }
@@ -75,11 +72,15 @@ impl Sender {
     pub fn receive_acks(&mut self, first_sequence: Sequence, acks: BitSet) {
         // TODO: process time to estimate RTT and packet loss
         self.reliable_packets.retain(|packet| {
-            if packet.sequence < first_sequence { false }
-            else {
+            if packet.sequence < first_sequence {
+                false
+            } else {
                 let idx = packet.sequence - first_sequence;
-                if idx as usize >= acks.len() { true }
-                else { acks[idx as usize] }
+                if idx as usize >= acks.len() {
+                    true
+                } else {
+                    acks[idx as usize]
+                }
             }
         });
         self.earliest_unacked_sequence = match self.reliable_packets.front() {
@@ -100,7 +101,9 @@ impl Receiver {
 
     pub fn get_message(&mut self) -> Option<Vec<u8>> {
         let next_idx = self.next_sequence as usize % RELIABLE_BUFFER_SIZE;
-        if self.received[next_idx].is_some() && self.received_sequences[next_idx] == self.next_sequence {
+        if self.received[next_idx].is_some()
+            && self.received_sequences[next_idx] == self.next_sequence
+        {
             self.next_sequence += 1;
             self.received[next_idx].take()
         } else {
@@ -111,7 +114,10 @@ impl Receiver {
     pub fn receive(&mut self, sequence: Sequence, data: Vec<u8>) {
         let idx = sequence as usize % RELIABLE_BUFFER_SIZE;
         if sequence > self.received_sequences[idx] {
-            assert!(sequence - self.received_sequences[idx] <= RELIABLE_BUFFER_SIZE as u32, "sequence number too high received");
+            assert!(
+                sequence - self.received_sequences[idx] <= RELIABLE_BUFFER_SIZE as u32,
+                "sequence number too high received"
+            );
             self.received_sequences[idx] = sequence;
             self.received[idx] = Some(data);
         }

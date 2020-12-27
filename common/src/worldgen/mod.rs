@@ -5,7 +5,7 @@ use crate::worldgen::perlin::rand_pos_int;
 use crate::{
     block::Block,
     registry::Registry,
-    world::{Chunk, ChunkPos, CHUNK_SIZE, WorldGenerator},
+    world::{Chunk, ChunkPos, WorldGenerator, CHUNK_SIZE},
 };
 
 use crate::debug::send_debug_info;

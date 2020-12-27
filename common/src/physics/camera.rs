@@ -2,10 +2,8 @@
 //!
 //! A `Camera` defines how a player's entity reacts to that player's inputs.
 
-use crate::{
-    debug::send_debug_info, physics::player::PhysicsPlayer, player::PlayerInput,
-};
 use super::BlockContainer;
+use crate::{debug::send_debug_info, physics::player::PhysicsPlayer, player::PlayerInput};
 use nalgebra::{Vector2, Vector3};
 
 // Unit vector in the `angle` direction
@@ -25,41 +23,50 @@ fn normalize_or_zero(v: Vector3<f64>) -> Vector3<f64> {
 #[derive(Default, Clone, Copy)]
 struct State {
     position: Vector3<f64>,
-    velocity: Vector3<f64>
+    velocity: Vector3<f64>,
 }
 
 #[derive(Default, Clone, Copy)]
 struct Derivative {
     velocity: Vector3<f64>,
-    acceleration: Vector3<f64>
+    acceleration: Vector3<f64>,
 }
 
-fn evaluate<AccelF>(initial_state: &State, t: f64, dt: f64, d: Option<Derivative>, acceleration: AccelF) -> Derivative
-where AccelF: Fn(&State, f64) -> Vector3<f64> {
+fn evaluate<AccelF>(
+    initial_state: &State,
+    t: f64,
+    dt: f64,
+    d: Option<Derivative>,
+    acceleration: AccelF,
+) -> Derivative
+where
+    AccelF: Fn(&State, f64) -> Vector3<f64>,
+{
     let d = d.unwrap_or_else(Derivative::default);
     let state = State {
-        position: initial_state.position + d.velocity*dt,
-        velocity: initial_state.velocity + d.acceleration*dt,
+        position: initial_state.position + d.velocity * dt,
+        velocity: initial_state.velocity + d.acceleration * dt,
     };
 
     Derivative {
         velocity: state.velocity,
-        acceleration: acceleration(&state, t + dt)
+        acceleration: acceleration(&state, t + dt),
     }
 }
 
 fn integrate<AccelF>(state: &mut State, t: f64, dt: f64, acceleration: &AccelF)
-where AccelF: Fn(&State, f64) -> Vector3<f64> {
+where
+    AccelF: Fn(&State, f64) -> Vector3<f64>,
+{
     let a = evaluate(&state, t, 0.0, None, acceleration);
     let b = evaluate(&state, t, dt * 0.5, Some(a), acceleration);
     let c = evaluate(&state, t, dt * 0.5, Some(b), acceleration);
     let d = evaluate(&state, t, dt, Some(c), acceleration);
 
-    let dxdt = 1.0 / 6.0 *
-        (a.velocity + 2.0 * (b.velocity + c.velocity) + d.velocity);
+    let dxdt = 1.0 / 6.0 * (a.velocity + 2.0 * (b.velocity + c.velocity) + d.velocity);
 
-    let dvdt = 1.0 / 6.0 *
-        (a.acceleration + 2.0 * (b.acceleration + c.acceleration) + d.acceleration);
+    let dvdt =
+        1.0 / 6.0 * (a.acceleration + 2.0 * (b.acceleration + c.acceleration) + d.acceleration);
 
     state.position += dxdt * dt;
     state.velocity += dvdt * dt;
@@ -83,10 +90,15 @@ impl PlayerCamera for FlyingCamera {
     const ACCELERATION: f64 = 25.0;
     const MAX_SPEED: f64 = 30.0;
 
-    fn compute_movement<BC: BlockContainer>(player: &mut PhysicsPlayer, input: PlayerInput, seconds_delta: f64, world: &BC) {
+    fn compute_movement<BC: BlockContainer>(
+        player: &mut PhysicsPlayer,
+        input: PlayerInput,
+        seconds_delta: f64,
+        world: &BC,
+    ) {
         // We're flying, so reset Y velocity to zero.
         player.velocity.y = 0.0;
-        
+
         // Calculate the intended acceleration based on controls.
         let mut force = Vector3::zeros();
         if input.key_move_forward {
@@ -121,7 +133,8 @@ impl PlayerCamera for FlyingCamera {
             expected_movement *= Self::MAX_SPEED / expected_movement.norm();
         }
 
-        player.velocity = player.move_check_collision(world, expected_movement * seconds_delta) / seconds_delta;
+        player.velocity =
+            player.move_check_collision(world, expected_movement * seconds_delta) / seconds_delta;
     }
 }
 
@@ -130,8 +143,13 @@ pub struct WalkingCamera;
 impl PlayerCamera for WalkingCamera {
     const ACCELERATION: f64 = 25.0;
     const MAX_SPEED: f64 = 30.0;
-    
-    fn compute_movement<BC: BlockContainer>(player: &mut PhysicsPlayer, input: PlayerInput, seconds_delta: f64, world: &BC) {
+
+    fn compute_movement<BC: BlockContainer>(
+        player: &mut PhysicsPlayer,
+        input: PlayerInput,
+        seconds_delta: f64,
+        world: &BC,
+    ) {
         // Not flying
         const JUMP_SPEED: f64 = 8.0;
         const GRAVITY_ACCELERATION: f64 = 25.0;
@@ -183,10 +201,7 @@ pub fn default_camera<BC: BlockContainer>(
     send_debug_info(
         "Physics",
         "ontheground",
-        format!(
-            "Player 0 on the ground? {}",
-            player.is_on_ground(world)
-        ),
+        format!("Player 0 on the ground? {}", player.is_on_ground(world)),
     );
     let [vx, vy, vz]: [f64; 3] = player.velocity.into();
     send_debug_info(

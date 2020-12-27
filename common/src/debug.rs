@@ -16,7 +16,7 @@ struct DebugInfoUnit {
 pub enum DebugInfoPart {
     Message(String),
     WorkerPerf(WorkerPerf),
-    PerfBreakdown(String, Vec<(String, f64)>)
+    PerfBreakdown(String, Vec<(String, f64)>),
 }
 
 /// Helper struct allowing multiple threads to easily show debug info.
@@ -40,15 +40,17 @@ impl DebugInfo {
     }
 
     /// Get the debug info
-    pub fn get_debug_info(&mut self) -> &mut BTreeMap<String, (bool, u32, BTreeMap<String, DebugInfoPart>)> {
-        let Self { ref mut next_id, .. } = self;
+    pub fn get_debug_info(
+        &mut self,
+    ) -> &mut BTreeMap<String, (bool, u32, BTreeMap<String, DebugInfoPart>)> {
+        let Self {
+            ref mut next_id, ..
+        } = self;
         while let Ok(diu) = self.receiver.try_recv() {
-            let (_, _, inner_map) = self.sections
-                .entry(diu.section)
-                .or_insert_with(|| {
-                    *next_id += 1;
-                    (false, *next_id - 1, BTreeMap::new())
-                });
+            let (_, _, inner_map) = self.sections.entry(diu.section).or_insert_with(|| {
+                *next_id += 1;
+                (false, *next_id - 1, BTreeMap::new())
+            });
             inner_map.insert(diu.id, diu.part);
         }
         &mut self.sections
@@ -78,7 +80,14 @@ pub struct WorkerPerf {
 }
 
 /// Send a debug info worker perf
-pub fn send_worker_perf(section: impl ToString, id: impl ToString, name: impl ToString, micros_per_iter: f32, iter_per_sec: f32, pending: usize) {
+pub fn send_worker_perf(
+    section: impl ToString,
+    id: impl ToString,
+    name: impl ToString,
+    micros_per_iter: f32,
+    iter_per_sec: f32,
+    pending: usize,
+) {
     DEBUG_INFO.read().unwrap().as_ref().map(|sender| {
         sender
             .send(DebugInfoUnit {
@@ -97,7 +106,12 @@ pub fn send_worker_perf(section: impl ToString, id: impl ToString, name: impl To
 }
 
 /// Send a debug info performance breakdown
-pub fn send_perf_breakdown(section: impl ToString, id: impl ToString, name: impl ToString, breakdown: Vec<(String, f64)>) {
+pub fn send_perf_breakdown(
+    section: impl ToString,
+    id: impl ToString,
+    name: impl ToString,
+    breakdown: Vec<(String, f64)>,
+) {
     DEBUG_INFO.read().unwrap().as_ref().map(|sender| {
         sender
             .send(DebugInfoUnit {

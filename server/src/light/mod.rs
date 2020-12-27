@@ -1,5 +1,5 @@
-use voxel_rs_common::world::{Chunk, CHUNK_SIZE};
 use std::sync::Arc;
+use voxel_rs_common::world::{Chunk, CHUNK_SIZE};
 
 mod sunlight;
 pub mod worker;
@@ -26,7 +26,8 @@ impl HighestOpaqueBlock {
                 for j in (0..CHUNK_SIZE).rev() {
                     // TODO: use BlockRegistry
                     if chunk.get_block_at((i, j, k)) != 0 {
-                        hob.y[(i*CHUNK_SIZE + k) as usize] = j as i64 + chunk.pos.py * CHUNK_SIZE as i64;
+                        hob.y[(i * CHUNK_SIZE + k) as usize] =
+                            j as i64 + chunk.pos.py * CHUNK_SIZE as i64;
                         break;
                     }
                 }
@@ -39,7 +40,7 @@ impl HighestOpaqueBlock {
     pub fn merge(&mut self, other: &HighestOpaqueBlock) {
         for i in 0..CHUNK_SIZE {
             for k in 0..CHUNK_SIZE {
-                let idx = (i*CHUNK_SIZE + k) as usize;
+                let idx = (i * CHUNK_SIZE + k) as usize;
                 self.y[idx] = Ord::max(self.y[idx], other.y[idx]);
             }
         }

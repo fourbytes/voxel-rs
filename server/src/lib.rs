@@ -6,10 +6,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 use voxel_rs_common::block::BlockId;
-use voxel_rs_common::physics::{
-    player::PhysicsPlayer,
-    AABB
-};
+use voxel_rs_common::physics::player::PhysicsPlayer;
+use voxel_rs_common::time::BreakdownCounter;
 use voxel_rs_common::{
     data::load_data,
     debug::{send_debug_info, send_perf_breakdown},
@@ -19,13 +17,9 @@ use voxel_rs_common::{
     },
     physics::simulation::ServerPhysicsSimulation,
     player::{CloseChunks, RenderDistance},
-    world::{
-        ChunkPos,
-        BlockPos,
-    },
+    world::{BlockPos, ChunkPos},
     worldgen::DefaultWorldGenerator,
 };
-use voxel_rs_common::time::BreakdownCounter;
 
 mod light;
 mod world;
@@ -149,7 +143,7 @@ pub fn launch_server(mut server: Box<dyn Server>) -> Result<()> {
                         let dir = Vector3::new(-y.sin() * p.cos(), p.sin(), -y.cos() * p.cos());
                         // TODO: don't hardcode max dist
                         if let Some((mut block, face)) =
-                        physics_player.get_pointed_at(dir, 10.0, &world)
+                            physics_player.get_pointed_at(dir, 10.0, &world)
                         {
                             block.px += D[face][0];
                             block.py += D[face][1];
@@ -157,7 +151,10 @@ pub fn launch_server(mut server: Box<dyn Server>) -> Result<()> {
                             let chunk_pos = block.containing_chunk_pos();
                             if let Some(chunk) = world.get_chunk(chunk_pos) {
                                 let mut new_chunk = (*chunk).clone();
-                                new_chunk.set_block_at(block.pos_in_containing_chunk(), players.get(&id).unwrap().block_to_place);
+                                new_chunk.set_block_at(
+                                    block.pos_in_containing_chunk(),
+                                    players.get(&id).unwrap().block_to_place,
+                                );
                                 world.set_chunk(Arc::new(new_chunk));
                             }
                         }
@@ -191,13 +188,14 @@ pub fn launch_server(mut server: Box<dyn Server>) -> Result<()> {
         // Send chunks to players
         let mut player_positions = Vec::new();
         for (player, data) in players.iter_mut() {
-            let player_pos = BlockPos::from(physics_simulation
-                .get_state()
-                .physics_state
-                .players
-                .get(player)
-                .unwrap()
-                .get_camera_position()
+            let player_pos = BlockPos::from(
+                physics_simulation
+                    .get_state()
+                    .physics_state
+                    .players
+                    .get(player)
+                    .unwrap()
+                    .get_camera_position(),
             );
             let player_chunk = player_pos.containing_chunk_pos();
             player_positions.push((player_chunk, data.render_distance));
@@ -220,15 +218,27 @@ pub fn launch_server(mut server: Box<dyn Server>) -> Result<()> {
         let all_close_chunks = players
             .iter()
             .map(|(id, data)| {
-                let player = physics_simulation.get_state().physics_state.players.get(id).unwrap();
+                let player = physics_simulation
+                    .get_state()
+                    .physics_state
+                    .players
+                    .get(id)
+                    .unwrap();
                 let player_chunk = BlockPos::from(player.position()).containing_chunk_pos(); // TODO: have this in the physics state?
-                data.close_chunks.get_close_chunks().iter().map(|chunk_pos| CloseChunkPos::new(*chunk_pos, player_chunk)).collect::<Vec<_>>()
+                data.close_chunks
+                    .get_close_chunks()
+                    .iter()
+                    .map(|chunk_pos| CloseChunkPos::new(*chunk_pos, player_chunk))
+                    .collect::<Vec<_>>()
             })
             .collect::<Vec<_>>();
         voxel_rs_common::collections::merge_arrays(&mut close_chunks_merged, &all_close_chunks[..]);
-        let close_chunks = close_chunks_merged.iter().map(|&ccp| ccp.pos).collect::<Vec<_>>();
+        let close_chunks = close_chunks_merged
+            .iter()
+            .map(|&ccp| ccp.pos)
+            .collect::<Vec<_>>();
         server_timing.record_part("Compute close chunks");
-        
+
         // Update light
         world.enqueue_chunks_for_lighting(&close_chunks);
         server_timing.record_part("Send chunks to light worker");
@@ -241,15 +251,23 @@ pub fn launch_server(mut server: Box<dyn Server>) -> Result<()> {
         world.drop_far_chunks(&player_positions);
         server_timing.record_part("Drop far chunks");
 
-        send_debug_info("Chunks", "server",
-                        format!(
-                            "Server loaded chunks = {}\nServer loaded chunk columns = {}\n",
-                            world.num_loaded_chunks(),
-                            world.num_loaded_chunk_columns(),
-                        ));
+        send_debug_info(
+            "Chunks",
+            "server",
+            format!(
+                "Server loaded chunks = {}\nServer loaded chunk columns = {}\n",
+                world.num_loaded_chunks(),
+                world.num_loaded_chunk_columns(),
+            ),
+        );
 
         // Nothing else to do for now :-)
-        send_perf_breakdown("Server", "mainloop", "Server main loop", server_timing.extract_part_averages());
+        send_perf_breakdown(
+            "Server",
+            "mainloop",
+            "Server main loop",
+            server_timing.extract_part_averages(),
+        );
     }
 }
 

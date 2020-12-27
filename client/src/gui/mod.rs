@@ -75,7 +75,7 @@ impl Gui {
     pub fn button(&mut self, id: u32, x: i32, y: i32, w: i32, h: i32) -> ButtonBuilder {
         ButtonBuilder {
             gui: self,
-            id: id+2,
+            id: id + 2,
             x,
             y,
             w,
@@ -107,7 +107,15 @@ pub struct ButtonBuilder<'a> {
 impl<'a> ButtonBuilder<'a> {
     /// Build the button
     pub fn build(self) -> bool {
-        let Self { gui, id, x, y, w, h, text } = self;
+        let Self {
+            gui,
+            id,
+            x,
+            y,
+            w,
+            h,
+            text,
+        } = self;
 
         // Check if the mouse is inside the button
         if gui.is_mouse_inside(x, y, w, h) {
@@ -119,14 +127,15 @@ impl<'a> ButtonBuilder<'a> {
             }
         }
         // Draw the shadow
-        gui.primitives.draw_rect(x + 3, y + 3, w, h, [0.0, 0.0, 0.0, 1.0], 0.02);
+        gui.primitives
+            .draw_rect(x + 3, y + 3, w, h, [0.0, 0.0, 0.0, 1.0], 0.02);
         // Draw the button
         let draw_pos;
         let button_color;
         if gui.hot_item == id {
             if gui.active_item == id {
                 // Hot and active
-                draw_pos = (x+2, y+2);
+                draw_pos = (x + 2, y + 2);
                 button_color = [0.4, 0.4, 0.5, 1.0];
             } else {
                 // Just hot
@@ -138,13 +147,14 @@ impl<'a> ButtonBuilder<'a> {
             draw_pos = (x, y);
             button_color = [0.6, 0.6, 0.7, 1.0];
         }
-        gui.primitives.draw_rect(draw_pos.0, draw_pos.1, w, h, button_color, 0.01);
+        gui.primitives
+            .draw_rect(draw_pos.0, draw_pos.1, w, h, button_color, 0.01);
         if let Some((text, color)) = text {
             gui.text(draw_pos.0, draw_pos.1, h, text, color, 0.005);
         }
         // If the mouse button is not down but this button is both hot and active, it must have been clicked
         if !gui.mouse_down && gui.active_item == id && gui.hot_item == id {
-            return true
+            return true;
         }
         false
     }

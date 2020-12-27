@@ -98,7 +98,12 @@ impl ClientPhysicsSimulation {
     }
 
     /// Step the simulation according to the current input and time
-    pub fn step_simulation<BC: BlockContainer>(&mut self, input: PlayerInput, time: Instant, world: &BC) {
+    pub fn step_simulation<BC: BlockContainer>(
+        &mut self,
+        input: PlayerInput,
+        time: Instant,
+        world: &BC,
+    ) {
         // Recompute simulation if necessary
         if self.needs_recomputing {
             self.needs_recomputing = false;

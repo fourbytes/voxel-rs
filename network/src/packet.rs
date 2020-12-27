@@ -1,7 +1,7 @@
+use super::types::*;
 use bincode::{DefaultOptions, Options};
 use crc::crc32;
-use serde::{Serialize, de::DeserializeOwned};
-use super::types::*;
+use serde::{de::DeserializeOwned, Serialize};
 
 lazy_static::lazy_static! {
     static ref BINCODE_OPTIONS: bincode::config::WithOtherLimit<DefaultOptions, bincode::config::Bounded> = {
@@ -52,23 +52,21 @@ pub fn deserialize_packet<P: DeserializeOwned>(source: &mut [u8]) -> bincode::Re
     }
     for i in 0..4 {
         if checksum[i] != packet_checksum[i] {
-            return Err(Box::new(bincode::ErrorKind::DeserializeAnyNotSupported)); // Actually, invalid checksum
+            return Err(Box::new(bincode::ErrorKind::DeserializeAnyNotSupported));
+            // Actually, invalid checksum
         }
     }
     BINCODE_OPTIONS.deserialize_from(&source[HEADER_SIZE..])
 }
 
-
 #[test]
 fn test_ser_de() {
     let msg1 = ToServerPacket::Message {
         salts_xor: 1194876546,
-        messages: vec![
-            Message::ReliableAcks {
-                first_sequence: 0,
-                acks: BitSet::new().into(),
-            },
-        ]
+        messages: vec![Message::ReliableAcks {
+            first_sequence: 0,
+            acks: BitSet::new().into(),
+        }],
     };
     let mut v = Vec::new();
     serialize_packet(&mut v, &msg1).unwrap();

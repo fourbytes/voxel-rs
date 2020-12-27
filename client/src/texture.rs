@@ -1,6 +1,6 @@
-use wgpu::util::{BufferInitDescriptor, DeviceExt};
 use image::{ImageBuffer, Rgba};
 use log::info;
+use wgpu::util::{BufferInitDescriptor, DeviceExt};
 
 const MIPMAP_LEVELS: u32 = 5;
 
@@ -72,7 +72,7 @@ pub fn load_image(
         let src_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: None,
             usage: wgpu::BufferUsage::COPY_SRC,
-            contents: &mipmaps[level as usize]
+            contents: &mipmaps[level as usize],
         });
         let buffer_view = wgpu::BufferCopyView {
             layout: wgpu::TextureDataLayout {
@@ -85,11 +85,7 @@ pub fn load_image(
         let texture_view = wgpu::TextureCopyView {
             texture: &texture,
             mip_level: level,
-            origin: wgpu::Origin3d {
-                x: 0,
-                y: 0,
-                z: 0,
-            },
+            origin: wgpu::Origin3d { x: 0, y: 0, z: 0 },
         };
         encoder.copy_buffer_to_texture(
             buffer_view,

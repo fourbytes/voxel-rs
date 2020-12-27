@@ -26,7 +26,7 @@ pub fn merge_arrays<T: Ord + Copy>(output: &mut Vec<T>, input: &[Vec<T>]) {
                     None => {
                         lowest = Some(el);
                         j = i;
-                    },
+                    }
                     Some(current) => {
                         if *current < el {
                             *current = el;
@@ -37,7 +37,7 @@ pub fn merge_arrays<T: Ord + Copy>(output: &mut Vec<T>, input: &[Vec<T>]) {
             }
         }
         if j == n {
-            break
+            break;
         } else {
             output.push(lowest.unwrap());
             indices[j] += 1;
