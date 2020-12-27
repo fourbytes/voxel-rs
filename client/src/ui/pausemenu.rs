@@ -1,19 +1,5 @@
-use anyhow::Result;
 use iced_wgpu::{button, Renderer};
-use iced_winit::{program, Command, Element, Length, Row, Text};
-use winit::event::ModifiersState;
-
-use crate::{
-    fps::FpsCounter,
-    input::InputState,
-    settings::Settings,
-    singleplayer::SinglePlayer,
-    window::{State, StateFactory, StateTransition, WindowBuffers, WindowData, WindowFlags},
-    render::iced::IcedRenderer,
-};
-use voxel_rs_common::network::dummy;
-use voxel_rs_server::launch_server;
-
+use iced_winit::{program::Program, Command, Element, Length, Row, Text};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Message {
@@ -40,7 +26,7 @@ impl PauseMenuControls {
     }
 }
 
-impl program::Program for PauseMenuControls {
+impl Program for PauseMenuControls {
     type Renderer = iced_wgpu::Renderer;
     type Message = Message;
 

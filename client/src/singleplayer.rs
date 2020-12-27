@@ -37,8 +37,6 @@ pub struct SinglePlayer {
     fps_counter: FpsCounter,
     is_paused: bool,
     pause_menu_renderer: IcedRenderer<PauseMenuControls, pausemenu::Message>,
-    ui_renderer: UiRenderer,
-    gui: Gui,
     world: World,
     #[allow(dead_code)] // TODO: remove this
     block_registry: Registry<Block>,
@@ -106,7 +104,6 @@ impl SinglePlayer {
             window_data,
             modifiers_state
         );
-        let ui_renderer = UiRenderer::new(device);
 
         let mut encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -119,8 +116,6 @@ impl SinglePlayer {
                 fps_counter: FpsCounter::new(),
                 is_paused: false,
                 pause_menu_renderer,
-                ui_renderer,
-                gui: Gui::new(),
                 world: World::new(data.meshes.clone(), world_renderer),
                 block_registry: data.blocks,
                 model_registry: data.models,
@@ -171,12 +166,14 @@ impl State for SinglePlayer {
         &mut self,
         _settings: &mut Settings,
         input_state: &InputState,
-        _data: &WindowData,
+        window_data: &WindowData,
         flags: &mut WindowFlags,
         _seconds_delta: f64,
         _device: &mut wgpu::Device,
     ) -> Result<StateTransition> {
         self.client_timing.start_frame();
+        self.pause_menu_renderer.update(window_data);
+
         // Handle server messages
         self.handle_server_messages();
         self.client_timing.record_part("Network events");
@@ -234,9 +231,11 @@ impl State for SinglePlayer {
         flags.grab_cursor = !self.is_paused;
 
         if self.pause_menu_renderer.state.program().should_exit {
+            self.pause_menu_renderer.reset(PauseMenuControls::new());
             Ok(StateTransition::ReplaceCurrent(crate::ui::mainmenu::MainMenu::new_factory()))
         } else if self.pause_menu_renderer.state.program().should_resume {
             self.is_paused = false;
+            self.pause_menu_renderer.reset(PauseMenuControls::new());
             Ok(StateTransition::KeepCurrent)
         } else {
             Ok(StateTransition::KeepCurrent)
@@ -327,7 +326,7 @@ impl State for SinglePlayer {
         );
         self.client_timing.record_part("Render chunks");
 
-        crate::render::clear_depth(&mut encoder, buffers);
+        //crate::render::clear_depth(&mut encoder, buffers);
 
         // Draw ui
         // self.ui.rebuild(data)?;
@@ -343,10 +342,12 @@ impl State for SinglePlayer {
             &mut self.gui,
             self.ui.should_capture_mouse(),
         );*/
-        if self.is_paused {
-            self.pause_menu_renderer.render(device, buffers, &mut encoder, None);
-        }
         crate::render::encode_resolve_render_pass(&mut encoder, buffers);
+
+        if self.is_paused {
+            self.pause_menu_renderer.render(device, buffers, &mut encoder, Some(vec!["Paused".to_string()]));
+        }
+
         self.client_timing.record_part("Render UI");
 
         send_perf_breakdown(
@@ -359,7 +360,9 @@ impl State for SinglePlayer {
         Ok((StateTransition::KeepCurrent, encoder.finish()))
     }
 
-    fn handle_window_event(&mut self, _: winit::event::WindowEvent, _: &InputState) {}
+    fn handle_window_event(&mut self, event: winit::event::WindowEvent, _: &InputState) {
+        self.pause_menu_renderer.handle_window_event(event)
+    }
 
     fn handle_mouse_motion(&mut self, _settings: &Settings, delta: (f64, f64)) {
         if !self.is_paused {
@@ -369,56 +372,44 @@ impl State for SinglePlayer {
 
     fn handle_cursor_movement(&mut self, logical_position: winit::dpi::LogicalPosition<f64>) {
         self.pause_menu_renderer.handle_cursor_movement(logical_position);
-        // self.ui.cursor_moved(logical_position);
-        let (x, y) = logical_position.into();
-        self.gui.update_mouse_position(x, y);
     }
 
     fn handle_mouse_state_changes(
         &mut self,
         changes: Vec<(winit::event::MouseButton, winit::event::ElementState)>,
     ) {
-        for (button, state) in changes.iter() {
-            let pp = self.physics_simulation.get_player();
-            let y = self.yaw_pitch.yaw;
-            let p = self.yaw_pitch.pitch;
-            match *button {
-                MouseButton::Left => match *state {
-                    ElementState::Pressed => {
-                        self.client
-                            .send(ToServer::BreakBlock(pp.position().coords, y, p));
-                    }
+        if !self.is_paused {
+            for (button, state) in changes.iter() {
+                let pp = self.physics_simulation.get_player();
+                let y = self.yaw_pitch.yaw;
+                let p = self.yaw_pitch.pitch;
+                match *button {
+                    MouseButton::Left => match *state {
+                        ElementState::Pressed => {
+                            self.client
+                                .send(ToServer::BreakBlock(pp.position().coords, y, p));
+                        }
+                        _ => {}
+                    },
+                    MouseButton::Right => match *state {
+                        ElementState::Pressed => {
+                            self.client
+                                .send(ToServer::PlaceBlock(pp.position().coords, y, p));
+                        }
+                        _ => {}
+                    },
+                    MouseButton::Middle => match *state {
+                        ElementState::Pressed => {
+                            self.client
+                                .send(ToServer::SelectBlock(pp.position().coords, y, p));
+                        }
+                        _ => {}
+                    },
                     _ => {}
-                },
-                MouseButton::Right => match *state {
-                    ElementState::Pressed => {
-                        self.client
-                            .send(ToServer::PlaceBlock(pp.position().coords, y, p));
-                    }
-                    _ => {}
-                },
-                MouseButton::Middle => match *state {
-                    ElementState::Pressed => {
-                        self.client
-                            .send(ToServer::SelectBlock(pp.position().coords, y, p));
-                    }
-                    _ => {}
-                },
-                _ => {}
+                }
             }
-            match *button {
-                MouseButton::Left => match *state {
-                    ElementState::Pressed => {
-                        self.gui.update_mouse_button(true);
-                    }
-                    ElementState::Released => {
-                        self.gui.update_mouse_button(false);
-                    }
-                },
-                _ => {}
-            }
+            // self.ui.handle_mouse_state_changes(changes);
         }
-        // self.ui.handle_mouse_state_changes(changes);
     }
 
     fn handle_key_state_changes(&mut self, changes: Vec<(u32, winit::event::ElementState)>) {
