@@ -177,6 +177,7 @@ impl State for SinglePlayer {
         // Collect input
         let frame_input =
             input_state.get_physics_input(self.yaw_pitch, self.ui.should_update_camera());
+
         // Send input to server
         self.client.send(ToServer::UpdateInput(frame_input));
         self.client_timing.record_part("Collect and send input");
@@ -240,7 +241,7 @@ impl State for SinglePlayer {
         send_debug_info("Player", "fps", format!("fps = {}", self.fps_counter.fps()));
 
         let frustum = Frustum::new(
-            self.physics_simulation.get_camera_position(),
+            self.physics_simulation.get_camera_position().coords,
             self.yaw_pitch,
         );
 
@@ -357,19 +358,19 @@ impl State for SinglePlayer {
             match *button {
                 MouseButton::Left => match *state {
                     ElementState::Pressed => {
-                        self.client.send(ToServer::BreakBlock(pp.aabb.pos, y, p));
+                        self.client.send(ToServer::BreakBlock(pp.coords().coords, y, p));
                     }
                     _ => {}
                 },
                 MouseButton::Right => match *state {
                     ElementState::Pressed => {
-                        self.client.send(ToServer::PlaceBlock(pp.aabb.pos, y, p));
+                        self.client.send(ToServer::PlaceBlock(pp.coords().coords, y, p));
                     }
                     _ => {}
                 },
                 MouseButton::Middle => match *state {
                     ElementState::Pressed => {
-                        self.client.send(ToServer::SelectBlock(pp.aabb.pos, y, p));
+                        self.client.send(ToServer::SelectBlock(pp.coords().coords, y, p));
                     }
                     _ => {}
                 },

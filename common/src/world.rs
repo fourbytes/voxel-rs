@@ -2,7 +2,7 @@ use crate::{
     block::{Block, BlockId},
     registry::Registry,
 };
-use nalgebra::Vector3;
+use nalgebra::Point3;
 
 /// The position of a block in the world.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -48,12 +48,12 @@ impl From<(f64, f64, f64)> for BlockPos {
     }
 }
 
-impl From<Vector3<f64>> for BlockPos {
-    fn from(vec: Vector3<f64>) -> Self {
+impl From<Point3<f64>> for BlockPos {
+    fn from(point: Point3<f64>) -> Self {
         Self {
-            px: vec[0].floor() as i64,
-            py: vec[1].floor() as i64,
-            pz: vec[2].floor() as i64,
+            px: point[0].floor() as i64,
+            py: point[1].floor() as i64,
+            pz: point[2].floor() as i64,
         }
     }
 }

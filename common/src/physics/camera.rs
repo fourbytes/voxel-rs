@@ -30,7 +30,8 @@ pub fn default_camera<BC: BlockContainer>(
         }
     }
     // Compute the expected movement of the player, i.e. assuming there are no collisions.
-    if input.flying || player.aabb.intersect_world(world) {
+    if input.flying || player.intersect_world(world) {
+        // Flying
         const ACCELERATION: f64 = 50.0;
         const MAX_SPEED: f64 = 30.0;
         player.velocity.y = 0.0;
@@ -63,8 +64,9 @@ pub fn default_camera<BC: BlockContainer>(
         if input.key_move_down {
             expected_movement.y -= (seconds_delta * MAX_SPEED) as f64;
         }
-        player.aabb.move_check_collision(world, expected_movement);
+        player.move_check_collision(world, expected_movement);
     } else {
+        // Not flying
         const JUMP_SPEED: f64 = 8.0;
         const GRAVITY_ACCELERATION: f64 = 25.0;
         const MAX_DOWN_SPEED: f64 = 30.0;
@@ -85,7 +87,7 @@ pub fn default_camera<BC: BlockContainer>(
             horizontal_velocity += movement_direction(input.yaw, 270.0);
         }
         let horizontal_velocity = normalize_or_zero(horizontal_velocity) * HORIZONTAL_SPEED;
-        if player.aabb.is_on_the_ground(world) {
+        if player.is_on_ground(world) {
             player.velocity.y = if input.key_move_up { JUMP_SPEED } else { 0.0 };
         } else {
             player.velocity.y -= GRAVITY_ACCELERATION * seconds_delta;
@@ -94,7 +96,7 @@ pub fn default_camera<BC: BlockContainer>(
             }
         };
         let expected_movement = (player.velocity + horizontal_velocity) * seconds_delta;
-        player.aabb.move_check_collision(world, expected_movement);
+        player.move_check_collision(world, expected_movement);
     }
     // TODO: add a noclip camera mode
     send_debug_info(
@@ -102,7 +104,7 @@ pub fn default_camera<BC: BlockContainer>(
         "ontheground",
         format!(
             "Player 0 on the ground? {}",
-            player.aabb.is_on_the_ground(world)
+            player.is_on_ground(world)
         ),
     );
     let [vx, vy, vz]: [f64; 3] = player.velocity.into();

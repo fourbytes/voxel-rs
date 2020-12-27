@@ -1,6 +1,6 @@
+pub use ncollide3d::bounding_volume::{AABB, BoundingVolume};
 use crate::world::BlockPos;
 
-pub mod aabb;
 pub mod camera;
 pub mod player;
 pub mod simulation;

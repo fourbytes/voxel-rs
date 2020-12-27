@@ -19,3 +19,4 @@ texture_packer = "0.21"
 
 # Math
 nalgebra = "0.23"
+ncollide3d = "0.26"

@@ -67,6 +67,7 @@ impl InputState {
 
     /// Process a keyboard input, returning whether the state of the key changed or not
     pub fn process_keyboard_input(&mut self, input: KeyboardInput) -> bool {
+        log::trace!("Updating keyboard input state.");
         let previous_state = self.keys.get(&input.scancode).cloned();
         self.keys.insert(input.scancode, input.state);
         if let &Some(ElementState::Pressed) = &previous_state {
@@ -94,6 +95,7 @@ impl InputState {
         state: ElementState,
         button: MouseButton,
     ) -> bool {
+        log::trace!("Updating mouse input state.");
         let previous_state = self.mouse_buttons.get(&button).cloned();
         self.mouse_buttons.insert(button, state);
         previous_state != Some(state)

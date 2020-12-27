@@ -5,7 +5,7 @@ use std::{
 use voxel_rs_common::{
     block::{Block, BlockId},
     player::RenderDistance,
-    physics::BlockContainer,
+    physics::{BlockContainer, BoundingVolume},
     registry::Registry,
     world::{
         Chunk, ChunkPos, ChunkPosXZ,

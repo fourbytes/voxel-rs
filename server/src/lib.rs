@@ -1,13 +1,15 @@
 use crate::world::World;
 use anyhow::Result;
 use log::info;
-use nalgebra::Vector3;
+use nalgebra::{Point3, Vector3};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 use voxel_rs_common::block::BlockId;
-use voxel_rs_common::physics::aabb::AABB;
-use voxel_rs_common::physics::player::PhysicsPlayer;
+use voxel_rs_common::physics::{
+    player::PhysicsPlayer,
+    AABB
+};
 use voxel_rs_common::{
     data::load_data,
     debug::{send_debug_info, send_perf_breakdown},
@@ -109,15 +111,7 @@ pub fn launch_server(mut server: Box<dyn Server>) -> Result<()> {
                     }
                     ToServer::BreakBlock(player_pos, yaw, pitch) => {
                         // TODO: check player pos and block
-                        let physics_player = PhysicsPlayer {
-                            aabb: AABB {
-                                pos: player_pos,
-                                size_x: 0.0,
-                                size_y: 0.0,
-                                size_z: 0.0,
-                            },
-                            velocity: Vector3::zeros(),
-                        };
+                        let physics_player = PhysicsPlayer::from_coords(Point3::from(player_pos));
                         let y = yaw.to_radians();
                         let p = pitch.to_radians();
                         let dir = Vector3::new(-y.sin() * p.cos(), p.sin(), -y.cos() * p.cos());
@@ -135,15 +129,7 @@ pub fn launch_server(mut server: Box<dyn Server>) -> Result<()> {
                     }
                     ToServer::SelectBlock(player_pos, yaw, pitch) => {
                         // TODO: check player pos and block
-                        let physics_player = PhysicsPlayer {
-                            aabb: AABB {
-                                pos: player_pos,
-                                size_x: 0.0,
-                                size_y: 0.0,
-                                size_z: 0.0,
-                            },
-                            velocity: Vector3::zeros(),
-                        };
+                        let physics_player = PhysicsPlayer::from_coords(Point3::from(player_pos));
                         let y = yaw.to_radians();
                         let p = pitch.to_radians();
                         let dir = Vector3::new(-y.sin() * p.cos(), p.sin(), -y.cos() * p.cos());
@@ -157,15 +143,7 @@ pub fn launch_server(mut server: Box<dyn Server>) -> Result<()> {
                     }
                     ToServer::PlaceBlock(player_pos, yaw, pitch) => {
                         // TODO: check player pos and block
-                        let physics_player = PhysicsPlayer {
-                            aabb: AABB {
-                                pos: player_pos,
-                                size_x: 0.0,
-                                size_y: 0.0,
-                                size_z: 0.0,
-                            },
-                            velocity: Vector3::zeros(),
-                        };
+                        let physics_player = PhysicsPlayer::from_coords(Point3::from(player_pos));
                         let y = yaw.to_radians();
                         let p = pitch.to_radians();
                         let dir = Vector3::new(-y.sin() * p.cos(), p.sin(), -y.cos() * p.cos());
@@ -243,7 +221,7 @@ pub fn launch_server(mut server: Box<dyn Server>) -> Result<()> {
             .iter()
             .map(|(id, data)| {
                 let player = physics_simulation.get_state().physics_state.players.get(id).unwrap();
-                let player_chunk = BlockPos::from(player.aabb.pos).containing_chunk_pos(); // TODO: have this in the physics state?
+                let player_chunk = BlockPos::from(player.coords()).containing_chunk_pos(); // TODO: have this in the physics state?
                 data.close_chunks.get_close_chunks().iter().map(|chunk_pos| CloseChunkPos::new(*chunk_pos, player_chunk)).collect::<Vec<_>>()
             })
             .collect::<Vec<_>>();

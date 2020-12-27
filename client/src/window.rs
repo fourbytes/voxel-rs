@@ -193,8 +193,6 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
                 use winit::event::WindowEvent::*;
                 match event {
                     Resized(_) => {
-                        log::debug!("Window resized.");
-
                         window_resized = true
                     },
                     ScaleFactorChanged { scale_factor, .. } => {
@@ -237,7 +235,7 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
                 use winit::event::DeviceEvent::*;
                 match event {
                     MouseMotion { delta } => state.handle_mouse_motion(&settings, delta),
-                    _ => (),
+                    _ => ()
                 }
             }
             /* MAIN LOOP TICK */
@@ -295,15 +293,14 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
                     window.set_cursor_visible(false);
                     let PhysicalSize { width, height } = window_data.physical_window_size;
                     match window.set_cursor_grab(true) {
-                        Err(err) => warn!("Failed to grab cursor ({:?})", err),
+                        Err(err) => log::warn!("Failed to grab cursor ({:?})", err),
                         _ => (),
                     }
-                    /* TODO: This results in NotSupportedError on Wayland.
                     let center_pos = PhysicalPosition { x : width / 2, y : height / 2 };
                     match window.set_cursor_position(center_pos) {
-                        Err(err) => warn!("Failed to center cursor ({:?})", err),
+                        Err(err) => log::trace!("Failed to center cursor ({:?})", err),
                         _ => (),
-                    } */
+                    }
                 } else {
                     window.set_cursor_visible(true);
                     match window.set_cursor_grab(false) {
