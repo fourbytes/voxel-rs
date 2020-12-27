@@ -4,7 +4,6 @@ use std::path::Path;
 mod fps;
 mod gui;
 mod input;
-mod mainmenu;
 mod render;
 mod settings;
 mod singleplayer;
@@ -25,6 +24,6 @@ fn main() -> Result<()> {
     window::open_window(
         settings,
         // Box::new(singleplayer::SinglePlayer::new_factory(Box::new(client))),
-        mainmenu::MainMenu::new_factory(),
+        ui::mainmenu::MainMenu::new_factory(),
     )
 }

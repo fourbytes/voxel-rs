@@ -108,8 +108,6 @@ where
         mut encoder: &mut wgpu::CommandEncoder,
         debug_info: Option<Vec<String>>,
     ) {
-        crate::render::clear_color_and_depth(&mut encoder, buffers);
-
         let mut staging_belt = wgpu::util::StagingBelt::new(128);
         self.renderer.backend_mut().draw(
             device,

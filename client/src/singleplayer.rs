@@ -13,13 +13,13 @@ use crate::input::YawPitch;
 //use crate::model::model::Model;
 //use crate::world::meshing::ChunkMeshData;
 use crate::gui::Gui;
-use crate::render::{Frustum, UiRenderer, WorldRenderer};
+use crate::render::{iced::IcedRenderer, Frustum, UiRenderer, WorldRenderer};
 use crate::window::WindowBuffers;
 use crate::{
     fps::FpsCounter,
     input::InputState,
     settings::Settings,
-    ui::Ui,
+    ui::pausemenu::{self, PauseMenuControls},
     window::{State, StateTransition, WindowData, WindowFlags},
     world::World,
 };
@@ -30,12 +30,13 @@ use voxel_rs_common::debug::{send_debug_info, send_perf_breakdown, DebugInfo};
 use voxel_rs_common::item::{Item, ItemMesh};
 use voxel_rs_common::physics::simulation::{ClientPhysicsSimulation, PhysicsState, ServerState};
 use voxel_rs_common::time::BreakdownCounter;
-use winit::event::{ElementState, MouseButton};
+use winit::event::{ModifiersState, ElementState, MouseButton};
 
 /// State of a singleplayer world
 pub struct SinglePlayer {
     fps_counter: FpsCounter,
-    ui: Ui,
+    is_paused: bool,
+    pause_menu_renderer: IcedRenderer<PauseMenuControls, pausemenu::Message>,
     ui_renderer: UiRenderer,
     gui: Gui,
     world: World,
@@ -56,12 +57,14 @@ pub struct SinglePlayer {
 
 impl SinglePlayer {
     pub fn new_factory(client: Box<dyn Client>) -> crate::window::StateFactory {
-        Box::new(move |device, settings, window_data, modifiers_state| Self::new(settings, device, client))
+        Box::new(move |device, settings, window_data, modifiers_state| Self::new(settings, device, window_data, modifiers_state, client))
     }
 
     pub fn new(
         settings: &mut Settings,
         device: &mut wgpu::Device,
+        window_data: &WindowData,
+        modifiers_state: &ModifiersState,
         mut client: Box<dyn Client>,
     ) -> Result<(Box<dyn State>, wgpu::CommandBuffer)> {
         info!("Launching singleplayer");
@@ -95,7 +98,14 @@ impl SinglePlayer {
             z_min: z2,
         };
         client.send(ToServer::SetRenderDistance(render_distance));
+
         // Create the renderers
+        let pause_menu_renderer = IcedRenderer::new(
+            PauseMenuControls::new(),
+            device,
+            window_data,
+            modifiers_state
+        );
         let ui_renderer = UiRenderer::new(device);
 
         let mut encoder =
@@ -107,7 +117,8 @@ impl SinglePlayer {
         Ok((
             Box::new(Self {
                 fps_counter: FpsCounter::new(),
-                ui: Ui::new(),
+                is_paused: false,
+                pause_menu_renderer,
                 ui_renderer,
                 gui: Gui::new(),
                 world: World::new(data.meshes.clone(), world_renderer),
@@ -172,7 +183,7 @@ impl State for SinglePlayer {
 
         // Collect input
         let frame_input =
-            input_state.get_physics_input(self.yaw_pitch, self.ui.should_update_camera());
+            input_state.get_physics_input(self.yaw_pitch, !self.is_paused);
 
         // Send input to server
         self.client.send(ToServer::UpdateInput(frame_input));
@@ -220,11 +231,13 @@ impl State for SinglePlayer {
             format!("Client loaded {} chunks", self.world.num_loaded_chunks()),
         );
 
-        flags.grab_cursor = self.ui.should_capture_mouse();
+        flags.grab_cursor = !self.is_paused;
 
-        if self.ui.should_exit() {
-            //Ok(StateTransition::ReplaceCurrent(Box::new(crate::mainmenu::MainMenu::new)))
-            Ok(StateTransition::CloseWindow)
+        if self.pause_menu_renderer.state.program().should_exit {
+            Ok(StateTransition::ReplaceCurrent(crate::ui::mainmenu::MainMenu::new_factory()))
+        } else if self.pause_menu_renderer.state.program().should_resume {
+            self.is_paused = false;
+            Ok(StateTransition::KeepCurrent)
         } else {
             Ok(StateTransition::KeepCurrent)
         }
@@ -317,8 +330,8 @@ impl State for SinglePlayer {
         crate::render::clear_depth(&mut encoder, buffers);
 
         // Draw ui
-        self.ui.rebuild(data)?;
-        self.gui.prepare();
+        // self.ui.rebuild(data)?;
+        /*self.gui.prepare();
         crate::gui::experiments::render_debug_info(&mut self.gui, &mut self.debug_info);
         self.gui.finish();
         self.ui_renderer.render(
@@ -329,7 +342,11 @@ impl State for SinglePlayer {
             &self.ui.ui,
             &mut self.gui,
             self.ui.should_capture_mouse(),
-        );
+        );*/
+        if self.is_paused {
+            self.pause_menu_renderer.render(device, buffers, &mut encoder, None);
+        }
+        crate::render::encode_resolve_render_pass(&mut encoder, buffers);
         self.client_timing.record_part("Render UI");
 
         send_perf_breakdown(
@@ -345,13 +362,14 @@ impl State for SinglePlayer {
     fn handle_window_event(&mut self, _: winit::event::WindowEvent, _: &InputState) {}
 
     fn handle_mouse_motion(&mut self, _settings: &Settings, delta: (f64, f64)) {
-        if self.ui.should_update_camera() {
+        if !self.is_paused {
             self.yaw_pitch.update_cursor(delta.0, delta.1);
         }
     }
 
     fn handle_cursor_movement(&mut self, logical_position: winit::dpi::LogicalPosition<f64>) {
-        self.ui.cursor_moved(logical_position);
+        self.pause_menu_renderer.handle_cursor_movement(logical_position);
+        // self.ui.cursor_moved(logical_position);
         let (x, y) = logical_position.into();
         self.gui.update_mouse_position(x, y);
     }
@@ -400,10 +418,17 @@ impl State for SinglePlayer {
                 _ => {}
             }
         }
-        self.ui.handle_mouse_state_changes(changes);
+        // self.ui.handle_mouse_state_changes(changes);
     }
 
     fn handle_key_state_changes(&mut self, changes: Vec<(u32, winit::event::ElementState)>) {
-        self.ui.handle_key_state_changes(changes);
+        for (key, state) in changes.into_iter() {
+            // Escape key
+            if key == 1 {
+                if let winit::event::ElementState::Pressed = state {
+                    self.is_paused = !self.is_paused;
+                }
+            }
+        }
     }
 }
