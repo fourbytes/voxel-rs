@@ -10,14 +10,14 @@ use std::{
 };
 use voxel_rs_common::{
     block::{Block, BlockId},
-    physics::{BlockContainer, BoundingVolume},
+    physics::BlockContainer,
     player::RenderDistance,
     registry::Registry,
     world::{BlockPos, Chunk, ChunkPos, ChunkPosXZ, LightChunk, WorldGenerator},
 };
 
 lazy_static! {
-    static ref EMPTY_HOB: Arc<HighestOpaqueBlock> = { Arc::new(HighestOpaqueBlock::new()) };
+    static ref EMPTY_HOB: Arc<HighestOpaqueBlock> = Arc::new(HighestOpaqueBlock::new());
 }
 
 /// Server-side world

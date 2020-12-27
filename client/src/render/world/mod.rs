@@ -197,9 +197,9 @@ impl WorldRenderer {
 
         // Mesh models
         let mut model_index_buffers =
-            MultiBuffer::with_capacity(device, 1, wgpu::BufferUsage::INDEX);
+            MultiBuffer::with_capacity(device, 10466, wgpu::BufferUsage::INDEX);
         let mut model_vertex_buffers =
-            MultiBuffer::with_capacity(device, 1, wgpu::BufferUsage::VERTEX);
+            MultiBuffer::with_capacity(device, 87360, wgpu::BufferUsage::VERTEX);
         for mesh_id in 0..models.get_number_of_ids() {
             let (vertices, indices) =
                 self::model::mesh_model(models.get_value_by_id(mesh_id).unwrap());
@@ -210,10 +210,10 @@ impl WorldRenderer {
         Self {
             uniform_view_proj,
             uniform_model,
-            chunk_index_buffers: MultiBuffer::with_capacity(device, 1000, wgpu::BufferUsage::INDEX),
+            chunk_index_buffers: MultiBuffer::with_capacity(device, 123040, wgpu::BufferUsage::INDEX),
             chunk_vertex_buffers: MultiBuffer::with_capacity(
                 device,
-                1000,
+                43680,
                 wgpu::BufferUsage::VERTEX,
             ),
             chunk_pipeline,

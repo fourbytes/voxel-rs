@@ -5,13 +5,19 @@ use log::{info, warn};
 use std::time::Instant;
 use wgpu::Device;
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
-use winit::event::{ElementState, MouseButton};
+use winit::event::{ElementState, ModifiersState, MouseButton};
 use winit::event_loop::ControlFlow;
 use winit::window::Window;
 
 /// A closure that creates a new instance of `State`.
-pub type StateFactory =
-    Box<dyn FnOnce(&mut Settings, &mut Device) -> Result<(Box<dyn State>, wgpu::CommandBuffer)>>;
+pub type StateFactory = Box<
+    dyn FnOnce(
+        &mut Device,
+        &mut Settings,
+        &WindowData,
+        &ModifiersState,
+    ) -> Result<(Box<dyn State>, wgpu::CommandBuffer)>,
+>;
 
 /// A transition from one state to another.
 pub enum StateTransition {
@@ -183,8 +189,13 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
 
     info!("Done initializing the window. Moving on to the first state...");
 
-    let (mut state, cmd) =
-        initial_state(&mut settings, &mut device).expect("Failed to create initial window state");
+    let (mut state, cmd) = initial_state(
+        &mut device,
+        &mut settings,
+        &window_data,
+        &input_state._get_modifiers_state(),
+    )
+    .expect("Failed to create initial window state");
     queue.submit(vec![cmd]);
 
     let mut previous_time = std::time::Instant::now();
@@ -330,8 +341,13 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
                     StateTransition::KeepCurrent => (),
                     StateTransition::ReplaceCurrent(new_state) => {
                         info!("Transitioning to a new window state...");
-                        let (new_state, cmd) = new_state(&mut settings, &mut device)
-                            .expect("Failed to create next window state");
+                        let (new_state, cmd) = new_state(
+                            &mut device,
+                            &mut settings,
+                            &window_data,
+                            &input_state._get_modifiers_state(),
+                        )
+                        .expect("Failed to create next window state");
                         state = new_state;
                         queue.submit(vec![cmd]);
                         return;
@@ -362,8 +378,13 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
                 match state_transition {
                     StateTransition::KeepCurrent => (),
                     StateTransition::ReplaceCurrent(new_state) => {
-                        let (new_state, cmd) = new_state(&mut settings, &mut device)
-                            .expect("Failed to create next window state");
+                        let (new_state, cmd) = new_state(
+                            &mut device,
+                            &mut settings,
+                            &window_data,
+                            &input_state._get_modifiers_state(),
+                        )
+                        .expect("Failed to create next window state");
                         state = new_state;
                         queue.submit(vec![cmd]);
                     }

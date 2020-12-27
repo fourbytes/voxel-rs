@@ -56,7 +56,7 @@ pub struct SinglePlayer {
 
 impl SinglePlayer {
     pub fn new_factory(client: Box<dyn Client>) -> crate::window::StateFactory {
-        Box::new(move |settings, device| Self::new(settings, device, client))
+        Box::new(move |device, settings, window_data, modifiers_state| Self::new(settings, device, client))
     }
 
     pub fn new(

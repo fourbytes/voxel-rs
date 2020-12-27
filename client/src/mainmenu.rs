@@ -1,6 +1,7 @@
 use anyhow::Result;
 use iced_wgpu::{button, Renderer};
 use iced_winit::{conversion, program, Command, Element, Length, Row, Size, Text, Viewport};
+use winit::event::ModifiersState;
 
 use crate::{
     fps::FpsCounter,
@@ -8,6 +9,7 @@ use crate::{
     settings::Settings,
     singleplayer::SinglePlayer,
     window::{State, StateFactory, StateTransition, WindowBuffers, WindowData, WindowFlags},
+    render::iced::IcedRenderer,
 };
 use voxel_rs_common::network::dummy;
 use voxel_rs_server::launch_server;
@@ -15,64 +17,36 @@ use voxel_rs_server::launch_server;
 /// State of the main menu
 pub struct MainMenu {
     fps_counter: FpsCounter,
-    ui_renderer: iced_wgpu::Renderer,
-    state: program::State<MainMenuControls>,
-    window_data: Option<WindowData>,
-    cursor_position: iced_winit::winit::dpi::PhysicalPosition<f64>,
+    ui_renderer: IcedRenderer<MainMenuControls, Message>,
 }
 
 impl MainMenu {
     pub fn new_factory() -> crate::window::StateFactory {
-        Box::new(move |settings, device| Self::new(settings, device))
+        Box::new(move |device, _settings, window_data, modifiers_state| Self::new(device, window_data, modifiers_state))
     }
 
     pub fn new(
-        settings: &mut Settings,
         device: &mut wgpu::Device,
+        window_data: &WindowData,
+        modifiers_state: &ModifiersState
     ) -> Result<(Box<dyn State>, wgpu::CommandBuffer)> {
         log::info!("Initializing main menu");
 
         // Create the renderers
-        let mut ui_renderer = iced_wgpu::Renderer::new(iced_wgpu::Backend::new(
-            device,
-            iced_wgpu::Settings {
-                format: crate::window::COLOR_FORMAT,
-                present_mode: crate::window::PRESENT_MODE,
-                default_font: None,
-                default_text_size: 50,
-                antialiasing: None,
-            },
-        ));
-
         let encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("main_menu_encoder"),
         });
-
-        let viewport = Viewport::with_physical_size(
-            Size::new(
-                settings.window_size[0] as u32,
-                settings.window_size[1] as u32,
-            ),
-            1.0,
-        );
-        let mut debug = iced_winit::Debug::new();
-        let cursor_position = iced_winit::winit::dpi::PhysicalPosition::new(-1.0, -1.0);
-        let controls = MainMenuControls::new();
-        let state = program::State::new(
-            controls,
-            viewport.logical_size(),
-            conversion::cursor_position(cursor_position.into(), viewport.scale_factor()),
-            &mut ui_renderer,
-            &mut debug,
+        let ui_renderer = IcedRenderer::new(
+            MainMenuControls::new(),
+            device,
+            window_data,
+            modifiers_state
         );
 
         Ok((
             Box::new(Self {
                 fps_counter: FpsCounter::new(),
                 ui_renderer,
-                cursor_position,
-                state,
-                window_data: None,
             }),
             encoder.finish(),
         ))
@@ -112,9 +86,9 @@ impl State for MainMenu {
     ) -> Result<StateTransition> {
         flags.grab_cursor = false;
 
-        if self.state.program().should_exit {
+        if self.ui_renderer.state.program().should_exit {
             Ok(StateTransition::CloseWindow)
-        } else if self.state.program().should_start_single_player {
+        } else if self.ui_renderer.state.program().should_start_single_player {
             Ok(StateTransition::ReplaceCurrent(self.start_single_player()))
         } else {
             Ok(StateTransition::KeepCurrent)
@@ -126,73 +100,34 @@ impl State for MainMenu {
         _settings: &Settings,
         buffers: WindowBuffers<'a>,
         device: &mut wgpu::Device,
-        data: &WindowData,
+        window_data: &WindowData,
         _input_state: &InputState,
     ) -> Result<(StateTransition, wgpu::CommandBuffer)> {
-        self.window_data = Some(data.clone());
-        let viewport = Viewport::with_physical_size(
-            Size::new(
-                data.physical_window_size.width,
-                data.physical_window_size.height,
-            ),
-            data.scale_factor,
-        );
-        self.state.update(
-            viewport.logical_size(),
-            conversion::cursor_position(self.cursor_position.into(), viewport.scale_factor()),
-            None,
-            &mut self.ui_renderer,
-            &mut iced_winit::Debug::new(),
-        );
         self.fps_counter.add_frame();
+        self.ui_renderer.update(window_data);
 
         // Initialize encoder and clear buffers.
         let mut encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
         crate::render::clear_color_and_depth(&mut encoder, buffers);
 
-        // Rebuild ui
-        let mut staging_belt = wgpu::util::StagingBelt::new(128);
-        let debug_info: Vec<String> = vec![];
-        self.ui_renderer.backend_mut().draw(
+        // Render Iced UI
+        self.ui_renderer.render(
             device,
-            &mut staging_belt,
+            buffers,
             &mut encoder,
-            buffers.texture_buffer,
-            &viewport,
-            self.state.primitive(),
-            &debug_info,
+            None
         );
-
-        staging_belt.finish();
 
         Ok((StateTransition::KeepCurrent, encoder.finish()))
     }
 
-    fn handle_window_event(&mut self, event: winit::event::WindowEvent, input_state: &InputState) {
-        // Map window event to iced event
-        if let Some(event) = iced_winit::conversion::window_event(
-            &event,
-            self.window_data
-                .as_ref()
-                .map(|w| w.scale_factor)
-                .unwrap_or(1.0),
-            input_state._get_modifiers_state(),
-        ) {
-            self.state.queue_event(event);
-        }
+    fn handle_window_event(&mut self, event: winit::event::WindowEvent, _input_state: &InputState) {
+        self.ui_renderer.handle_window_event(event);
     }
 
     fn handle_cursor_movement(&mut self, logical_position: winit::dpi::LogicalPosition<f64>) {
-        let (x, y) = logical_position
-            .to_physical::<f64>(
-                self.window_data
-                    .as_ref()
-                    .map(|w| w.scale_factor)
-                    .unwrap_or(1.0),
-            )
-            .into();
-        self.cursor_position = winit::dpi::PhysicalPosition::new(x, y)
+        self.ui_renderer.handle_cursor_movement(logical_position);
     }
 
     fn handle_mouse_motion(&mut self, _: &Settings, _: (f64, f64)) {}
