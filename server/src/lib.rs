@@ -221,7 +221,7 @@ pub fn launch_server(mut server: Box<dyn Server>) -> Result<()> {
             .iter()
             .map(|(id, data)| {
                 let player = physics_simulation.get_state().physics_state.players.get(id).unwrap();
-                let player_chunk = BlockPos::from(player.coords()).containing_chunk_pos(); // TODO: have this in the physics state?
+                let player_chunk = BlockPos::from(player.position()).containing_chunk_pos(); // TODO: have this in the physics state?
                 data.close_chunks.get_close_chunks().iter().map(|chunk_pos| CloseChunkPos::new(*chunk_pos, player_chunk)).collect::<Vec<_>>()
             })
             .collect::<Vec<_>>();

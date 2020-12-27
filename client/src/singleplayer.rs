@@ -358,19 +358,19 @@ impl State for SinglePlayer {
             match *button {
                 MouseButton::Left => match *state {
                     ElementState::Pressed => {
-                        self.client.send(ToServer::BreakBlock(pp.coords().coords, y, p));
+                        self.client.send(ToServer::BreakBlock(pp.position().coords, y, p));
                     }
                     _ => {}
                 },
                 MouseButton::Right => match *state {
                     ElementState::Pressed => {
-                        self.client.send(ToServer::PlaceBlock(pp.coords().coords, y, p));
+                        self.client.send(ToServer::PlaceBlock(pp.position().coords, y, p));
                     }
                     _ => {}
                 },
                 MouseButton::Middle => match *state {
                     ElementState::Pressed => {
-                        self.client.send(ToServer::SelectBlock(pp.coords().coords, y, p));
+                        self.client.send(ToServer::SelectBlock(pp.position().coords, y, p));
                     }
                     _ => {}
                 },

@@ -120,7 +120,7 @@ impl PhysicsPlayer {
     }
 
     /// Get the coords of the player.
-    pub fn coords(&self) -> Point3<f64> {
+    pub fn position(&self) -> Point3<f64> {
         let mut c = self.aabb.center();
         c.coords.y = self.aabb.mins.coords.y;
         c
@@ -128,7 +128,7 @@ impl PhysicsPlayer {
 
     /// Get the position of the camera
     pub fn get_camera_position(&self) -> Point3<f64> {
-        self.coords() + Vector3::from(CAMERA_OFFSET)
+        self.position() + Vector3::from(CAMERA_OFFSET)
     }
 
     /// Ray trace to find the pointed block. Return the position of the block and the face (x/-x/y/-y/z/-z)
