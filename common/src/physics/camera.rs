@@ -80,7 +80,7 @@ trait PlayerCamera {
 pub struct FlyingCamera;
 
 impl PlayerCamera for FlyingCamera {
-    const ACCELERATION: f64 = 8.0;
+    const ACCELERATION: f64 = 25.0;
     const MAX_SPEED: f64 = 30.0;
 
     fn compute_movement<BC: BlockContainer>(player: &mut PhysicsPlayer, input: PlayerInput, seconds_delta: f64, world: &BC) {
@@ -88,63 +88,53 @@ impl PlayerCamera for FlyingCamera {
         player.velocity.y = 0.0;
         
         // Calculate the intended acceleration based on controls.
-        let mut player_acceleration = Vector3::zeros();
+        let mut force = Vector3::zeros();
         if input.key_move_forward {
-            player_acceleration += movement_direction(input.yaw, 0.0);
+            force += movement_direction(input.yaw, 0.0);
         }
         if input.key_move_left {
-            player_acceleration += movement_direction(input.yaw, 90.0);
+            force += movement_direction(input.yaw, 90.0);
         }
         if input.key_move_backward {
-            player_acceleration += movement_direction(input.yaw, 180.0);
+            force += movement_direction(input.yaw, 180.0);
         }
         if input.key_move_right {
-            player_acceleration += movement_direction(input.yaw, 270.0);
+            force += movement_direction(input.yaw, 270.0);
+        }
+        force *= Self::ACCELERATION;
+
+        if input.key_move_up {
+            force.y += Self::MAX_SPEED as f64;
+        }
+        if input.key_move_down {
+            force.y -= Self::MAX_SPEED as f64;
         }
 
-        // Use RK4 integration to estimate the movement from the time delta.
-        let mut state = State {
-            position: player.position().coords,
-            velocity: player.velocity
-        };
+        /*const STIFFNESS: f64 = 10.0;
+        const MASS: f64 = 1.0;
+        const DAMPENING: f64 = 0.2;
+        let spring_force = -STIFFNESS/MASS - (DAMPENING/MASS) * player.velocity;*/
 
-        integrate(&mut state, 1.0/seconds_delta, seconds_delta, &move |state, _| {
-            // -Self::ACCELERATION * state.position - player_acceleration + state.velocity
-            player_acceleration * Self::ACCELERATION
-        });
+        let mut expected_movement = force;
 
-        let mut expected_movement = state.velocity;
         if expected_movement.norm() > Self::MAX_SPEED {
             expected_movement *= Self::MAX_SPEED / expected_movement.norm();
         }
 
-        if input.key_move_up {
-            expected_movement.y += (seconds_delta * Self::MAX_SPEED) as f64;
-        }
-        if input.key_move_down {
-            expected_movement.y -= (seconds_delta * Self::MAX_SPEED) as f64;
-        }
-
-        player.velocity = player.move_check_collision(world, expected_movement);
+        player.velocity = player.move_check_collision(world, expected_movement * seconds_delta) / seconds_delta;
     }
 }
 
-/// The default camera. It doesn't let you go inside blocks unless you are already inside blocks.
-// TODO: use better integrator (RK4 ?)
-pub fn default_camera<BC: BlockContainer>(
-    player: &mut PhysicsPlayer,
-    input: PlayerInput,
-    seconds_delta: f64,
-    world: &BC,
-) {
-    // Compute the expected movement of the player, i.e. assuming there are no collisions.
-    if input.flying || player.intersect_world(world) {
-        FlyingCamera::compute_movement(player, input, seconds_delta, world)
-    } else {
+pub struct WalkingCamera;
+
+impl PlayerCamera for WalkingCamera {
+    const ACCELERATION: f64 = 25.0;
+    const MAX_SPEED: f64 = 30.0;
+    
+    fn compute_movement<BC: BlockContainer>(player: &mut PhysicsPlayer, input: PlayerInput, seconds_delta: f64, world: &BC) {
         // Not flying
         const JUMP_SPEED: f64 = 8.0;
         const GRAVITY_ACCELERATION: f64 = 25.0;
-        const MAX_DOWN_SPEED: f64 = 30.0;
         const HORIZONTAL_SPEED: f64 = 7.0;
         player.velocity.x = 0.0;
         player.velocity.z = 0.0;
@@ -166,12 +156,28 @@ pub fn default_camera<BC: BlockContainer>(
             player.velocity.y = if input.key_move_up { JUMP_SPEED } else { 0.0 };
         } else {
             player.velocity.y -= GRAVITY_ACCELERATION * seconds_delta;
-            if player.velocity.y < -MAX_DOWN_SPEED {
-                player.velocity.y = -MAX_DOWN_SPEED;
+            if player.velocity.y < -Self::MAX_SPEED {
+                player.velocity.y = -Self::MAX_SPEED;
             }
         };
         let expected_movement = (player.velocity + horizontal_velocity) * seconds_delta;
         player.move_check_collision(world, expected_movement);
+    }
+}
+
+/// The default camera. It doesn't let you go inside blocks unless you are already inside blocks.
+// TODO: use better integrator (RK4 ?)
+pub fn default_camera<BC: BlockContainer>(
+    player: &mut PhysicsPlayer,
+    input: PlayerInput,
+    seconds_delta: f64,
+    world: &BC,
+) {
+    // Compute the expected movement of the player, i.e. assuming there are no collisions.
+    if input.flying || player.intersect_world(world) {
+        FlyingCamera::compute_movement(player, input, seconds_delta, world);
+    } else {
+        WalkingCamera::compute_movement(player, input, seconds_delta, world);
     }
     // TODO: add a noclip camera mode
     send_debug_info(

@@ -59,7 +59,7 @@ impl PhysicsPlayer {
             d / (s as f64)
         });
 
-        let mut old_pos = self.aabb;
+        let old_pos = self.aabb;
 
         // Loop the X, Y, and Z dimension.
         for r in 0..3 {
@@ -96,7 +96,6 @@ impl PhysicsPlayer {
                 }
 
                 self.aabb = new_pos;
-                old_pos = self.aabb;
 
                 if should_break {
                     break
