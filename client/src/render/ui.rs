@@ -1,12 +1,12 @@
 //! Ui rendering
 
-use super::{ buffer_from_slice, to_u8_slice };
 use super::buffers::DynamicBuffer;
 use super::init::{load_glsl_shader, ShaderStage};
+use super::{buffer_from_slice, to_u8_slice};
 use crate::ui::PrimitiveBuffer;
 use crate::window::{WindowBuffers, WindowData};
 use std::collections::{BTreeMap, HashMap};
-use wgpu_glyph::{FontId, ab_glyph::FontVec};
+use wgpu_glyph::{ab_glyph::FontVec, FontId};
 
 pub struct UiRenderer {
     // Glyph rendering
@@ -24,8 +24,9 @@ impl<'a> UiRenderer {
     pub fn new(device: &mut wgpu::Device) -> Self {
         // Load fonts
         let default_font = FontVec::try_from_vec(
-            include_bytes!("../../../assets/fonts/IBMPlexMono-Regular.ttf").to_vec()
-        ).expect("Failed to load default font.");
+            include_bytes!("../../../assets/fonts/IBMPlexMono-Regular.ttf").to_vec(),
+        )
+        .expect("Failed to load default font.");
         let mut glyph_brush_builder = wgpu_glyph::GlyphBrushBuilder::using_font(default_font);
         log::info!("Loading fonts from assets/fonts/list.toml");
         let mut fonts = HashMap::new();
@@ -62,8 +63,11 @@ impl<'a> UiRenderer {
             entries: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
                 visibility: wgpu::ShaderStage::VERTEX,
-                ty: wgpu::BindingType::UniformBuffer { dynamic: false, min_binding_size: None },
-                count: None
+                ty: wgpu::BindingType::UniformBuffer {
+                    dynamic: false,
+                    min_binding_size: None,
+                },
+                count: None,
             }],
         });
 
@@ -73,16 +77,16 @@ impl<'a> UiRenderer {
             layout: &uniform_layout,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
-                resource: wgpu::BindingResource::Buffer(
-                    transform_buffer.slice(0..16)
-                ),
+                resource: wgpu::BindingResource::Buffer(transform_buffer.slice(0..16)),
             }],
         });
 
         // Create shader modules
-        let vertex_shader_bytes = load_glsl_shader(ShaderStage::Vertex, "assets/shaders/gui-rect.vert");
+        let vertex_shader_bytes =
+            load_glsl_shader(ShaderStage::Vertex, "assets/shaders/gui-rect.vert");
         let vertex_shader = wgpu::util::make_spirv(&vertex_shader_bytes);
-        let fragment_shader_bytes = load_glsl_shader(ShaderStage::Fragment, "assets/shaders/gui-rect.frag");
+        let fragment_shader_bytes =
+            load_glsl_shader(ShaderStage::Fragment, "assets/shaders/gui-rect.frag");
         let fragment_shader = wgpu::util::make_spirv(&fragment_shader_bytes);
 
         log::trace!("Creating pipeline.");
@@ -182,10 +186,14 @@ impl<'a> UiRenderer {
         }
         // Text
         for TextPrimitive {
-            x, y, w, h,
+            x,
+            y,
+            w,
+            h,
             mut parts,
             z,
-            center_horizontally, center_vertically,
+            center_horizontally,
+            center_vertically,
         } in primitive_buffer.text.into_iter()
         {
             let dpi = window_data.scale_factor as f32;
@@ -199,15 +207,17 @@ impl<'a> UiRenderer {
             let Self { ref fonts, .. } = &self;
             let parts: Vec<wgpu_glyph::Text> = parts
                 .iter()
-                .map(|part| wgpu_glyph::Text::new(&part.text)
-                    .with_scale(part.font_size)
-                    .with_color(part.color)
-                    .with_font_id(part
-                        .font
-                        .clone()
-                        .and_then(|f| fonts.get(&f).cloned())
-                        .unwrap_or_default())
-                )
+                .map(|part| {
+                    wgpu_glyph::Text::new(&part.text)
+                        .with_scale(part.font_size)
+                        .with_color(part.color)
+                        .with_font_id(
+                            part.font
+                                .clone()
+                                .and_then(|f| fonts.get(&f).cloned())
+                                .unwrap_or_default(),
+                        )
+                })
                 .collect();
             // Calculate positions
             let mut x = x as f32;
@@ -221,10 +231,10 @@ impl<'a> UiRenderer {
                 None => std::f32::INFINITY,
             };
             if center_horizontally {
-                x += w/2.0;
+                x += w / 2.0;
             }
             if center_vertically {
-                y += h/2.0;
+                y += h / 2.0;
             }
             // Apply DPI to positions
             x *= dpi;
@@ -330,7 +340,7 @@ impl<'a> UiRenderer {
             let src_buffer = buffer_from_slice(
                 device,
                 wgpu::BufferUsage::COPY_SRC,
-                to_u8_slice(&transformation_matrix[..])
+                to_u8_slice(&transformation_matrix[..]),
             );
             encoder.copy_buffer_to_buffer(&src_buffer, 0, &self.transform_buffer, 0, 16 * 4);
             // Update vertex buffer

@@ -90,13 +90,16 @@ pub fn load_data(data_directory: PathBuf) -> Result<Data> {
     };*/
 
     // TODO : load every .vox in the model folder
-    let model_tree = load_voxel_model(
-        data_directory.join("model/tree.vox").to_str().unwrap()
-    ).unwrap();
+    let model_tree =
+        load_voxel_model(data_directory.join("model/tree.vox").to_str().unwrap()).unwrap();
     models.register("tree".to_owned(), model_tree)?;
     let model_knight = load_voxel_model(
-        data_directory.join("model/chr_knight.vox").to_str().unwrap()
-    ).unwrap();
+        data_directory
+            .join("model/chr_knight.vox")
+            .to_str()
+            .unwrap(),
+    )
+    .unwrap();
     models.register("knight".to_owned(), model_knight)?;
 
     // Load items
@@ -217,19 +220,23 @@ fn load_textures(
 
     let mut packer = TexturePacker::new_skyline(TEXTURE_PACKER_CONFIG);
     for (i, path) in textures.iter().enumerate() {
-        packer.pack_own(
-            format!("{}", i),
-            ImageImporter::import_from_file(path).expect("Failed to read texture to pack"),
-        ).expect("Failed to pack textures");
+        packer
+            .pack_own(
+                format!("{}", i),
+                ImageImporter::import_from_file(path).expect("Failed to read texture to pack"),
+            )
+            .expect("Failed to pack textures");
     }
 
     let mut texture_buffer: ImageBuffer<Rgba<u8>, Vec<u8>> =
         ImageBuffer::new(MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE);
-    texture_buffer.copy_from(
-        &ImageExporter::export(&packer).expect("Failed to export texture from packer"),
-        0,
-        0,
-    ).expect("Failed to copy texture atlas to buffer");
+    texture_buffer
+        .copy_from(
+            &ImageExporter::export(&packer).expect("Failed to export texture from packer"),
+            0,
+            0,
+        )
+        .expect("Failed to copy texture atlas to buffer");
     texture_buffer
         .save("atlas.png")
         .expect("Failed to save texture atlas");

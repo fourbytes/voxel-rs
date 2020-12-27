@@ -1,4 +1,4 @@
-pub use std::net::{UdpSocket, SocketAddr};
+pub use std::net::{SocketAddr, UdpSocket};
 
 // TODO: handle errors :-)
 pub trait Socket {
@@ -15,10 +15,12 @@ impl Socket for UdpSocket {
     fn send(&mut self, buf: &[u8], addr: SocketAddr) -> Option<()> {
         let res = self.send_to(buf, addr);
         match res {
-            Ok(bytes_read) => if buf.len() == bytes_read {
-                Some(())
-            } else {
-                None
+            Ok(bytes_read) => {
+                if buf.len() == bytes_read {
+                    Some(())
+                } else {
+                    None
+                }
             }
             Err(e) => {
                 log::warn!("Packet sending error: {:?}", e);

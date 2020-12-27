@@ -89,11 +89,7 @@ impl InputState {
     }
 
     /// Process a mouse input, returning whether the state of the button changed or not
-    pub fn process_mouse_input(
-        &mut self,
-        state: ElementState,
-        button: MouseButton,
-    ) -> bool {
+    pub fn process_mouse_input(&mut self, state: ElementState, button: MouseButton) -> bool {
         let previous_state = self.mouse_buttons.get(&button).cloned();
         self.mouse_buttons.insert(button, state);
         previous_state != Some(state)

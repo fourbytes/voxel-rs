@@ -18,7 +18,8 @@ pub fn load_glsl_shader<'a, P: AsRef<Path>>(stage: ShaderStage, path: P) -> Vec<
     let glsl_source = std::fs::read_to_string(path).expect("Couldn't read shader from file");
 
     let mut compiler = shaderc::Compiler::new().unwrap();
-    compiler.compile_into_spirv(&glsl_source, ty, &path_display, "main", None)
+    compiler
+        .compile_into_spirv(&glsl_source, ty, &path_display, "main", None)
         .expect("Couldn't compile shader.")
         .as_binary_u8()
         .to_vec()
@@ -32,7 +33,7 @@ pub const RASTERIZER_NO_CULLING: wgpu::RasterizationStateDescriptor =
         depth_bias: 0,
         depth_bias_slope_scale: 0.0,
         depth_bias_clamp: 0.0,
-        clamp_depth: false
+        clamp_depth: false,
     };
 
 /// Default `RasterizationStateDescriptor` with backface culling
@@ -70,7 +71,7 @@ pub const DEFAULT_DEPTH_STENCIL_STATE_DESCRIPTOR: wgpu::DepthStencilStateDescrip
             back: wgpu::StencilStateFaceDescriptor::IGNORE,
             read_mask: 0,
             write_mask: 0,
-        }
+        },
     };
 
 /// Create a default pipeline
@@ -91,7 +92,7 @@ pub fn create_default_pipeline(
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: None,
         bind_group_layouts: &[uniform_layout],
-        push_constant_ranges: &[]
+        push_constant_ranges: &[],
     });
 
     log::trace!("Creating render pipeline.");

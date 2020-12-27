@@ -244,7 +244,15 @@ impl PrimitiveBuffer {
         })
     }*/
 
-    pub fn draw_text_simple(&mut self, x: i32, y: i32, h: i32, text: String, color: [f32; 4], z: f32) {
+    pub fn draw_text_simple(
+        &mut self,
+        x: i32,
+        y: i32,
+        h: i32,
+        text: String,
+        color: [f32; 4],
+        z: f32,
+    ) {
         self.text.push(TextPrimitive {
             x,
             y,

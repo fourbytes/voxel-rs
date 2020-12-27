@@ -1,6 +1,6 @@
 use std::str::FromStr;
 use std::thread;
-use voxel_rs_network::{Client, Server, ServerEvent, SocketAddr, MessageDelivery};
+use voxel_rs_network::{Client, MessageDelivery, Server, ServerEvent, SocketAddr};
 
 mod common;
 use self::common::{DummySocket, NO_LOSS_CONFIG};

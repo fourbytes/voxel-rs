@@ -9,7 +9,11 @@ pub fn render_debug_info(gui: &mut super::Gui, debug_info: &mut DebugInfo) {
     let mut y = 4;
     for (section, (displayed, id, messages)) in debug_info {
         let section_text = format!("{} debug info", section.to_uppercase());
-        if gui.button(*id, x, y, 400, ELEMENT_HEIGHT).text(section_text, [1.0, 1.0, 1.0, 1.0]).build() {
+        if gui
+            .button(*id, x, y, 400, ELEMENT_HEIGHT)
+            .text(section_text, [1.0, 1.0, 1.0, 1.0])
+            .build()
+        {
             *displayed = !*displayed;
         }
         y += ELEMENT_OFFSET;
@@ -18,10 +22,17 @@ pub fn render_debug_info(gui: &mut super::Gui, debug_info: &mut DebugInfo) {
                 match part {
                     DebugInfoPart::Message(message) => {
                         for line in message.lines() {
-                            gui.text(x + 10, y, ELEMENT_HEIGHT, line.to_owned(), [1.0, 1.0, 1.0, 1.0], 0.02);
+                            gui.text(
+                                x + 10,
+                                y,
+                                ELEMENT_HEIGHT,
+                                line.to_owned(),
+                                [1.0, 1.0, 1.0, 1.0],
+                                0.02,
+                            );
                             y += ELEMENT_HEIGHT;
                         }
-                    },
+                    }
                     DebugInfoPart::WorkerPerf(perf) => {
                         let text = format!(
                             "{:22} | {:6.1} ms/iter | {:5.0} iter/s | {:3.0}% efficiency | {:7} pending",
@@ -33,16 +44,23 @@ pub fn render_debug_info(gui: &mut super::Gui, debug_info: &mut DebugInfo) {
                         );
                         gui.text(x + 10, y, ELEMENT_HEIGHT, text, [1.0, 1.0, 1.0, 1.0], 0.02);
                         y += ELEMENT_HEIGHT;
-                    },
+                    }
                     DebugInfoPart::PerfBreakdown(name, breakdown) => {
-                        gui.text(x + 10, y, ELEMENT_HEIGHT, format!("{} performance breakdown", name), [1.0, 1.0, 1.0, 1.0], 0.02);
+                        gui.text(
+                            x + 10,
+                            y,
+                            ELEMENT_HEIGHT,
+                            format!("{} performance breakdown", name),
+                            [1.0, 1.0, 1.0, 1.0],
+                            0.02,
+                        );
                         y += ELEMENT_HEIGHT;
                         for (text, percents) in breakdown {
                             let text = format!("{:3.0}% of time: {}", *percents * 100.0, text);
                             gui.text(x + 20, y, ELEMENT_HEIGHT, text, [1.0, 1.0, 1.0, 1.0], 0.02);
                             y += ELEMENT_HEIGHT;
                         }
-                    },
+                    }
                 }
             }
         }

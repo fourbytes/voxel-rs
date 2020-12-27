@@ -4,7 +4,7 @@ use crate::{
     physics::BlockContainer,
     player::{PlayerId, PlayerInput},
 };
-use nalgebra::Vector3;
+use nalgebra::{Point3, Vector3};
 use std::{
     collections::HashMap,
     time::{Duration, Instant},
@@ -84,7 +84,7 @@ impl ClientPhysicsSimulation {
     }
 
     /// Get the camera position of the client
-    pub fn get_camera_position(&self) -> Vector3<f64> {
+    pub fn get_camera_position(&self) -> Point3<f64> {
         self.current_state
             .players
             .get(&self.player_id)
@@ -98,7 +98,12 @@ impl ClientPhysicsSimulation {
     }
 
     /// Step the simulation according to the current input and time
-    pub fn step_simulation<BC: BlockContainer>(&mut self, input: PlayerInput, time: Instant, world: &BC) {
+    pub fn step_simulation<BC: BlockContainer>(
+        &mut self,
+        input: PlayerInput,
+        time: Instant,
+        world: &BC,
+    ) {
         // Recompute simulation if necessary
         if self.needs_recomputing {
             self.needs_recomputing = false;

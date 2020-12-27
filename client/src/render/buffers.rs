@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 
-use super::{ buffer_from_slice, to_u8_slice };
+use super::{buffer_from_slice, to_u8_slice};
 
 /// A buffer that will automatically resize itself when necessary
 pub struct DynamicBuffer<T: Copy> {
@@ -58,11 +58,7 @@ impl<T: Copy + 'static> DynamicBuffer<T> {
             self.capacity = data.len();
         }
 
-        let src_buffer = buffer_from_slice(
-            device,
-            wgpu::BufferUsage::COPY_SRC,
-            to_u8_slice(data)
-        );
+        let src_buffer = buffer_from_slice(device, wgpu::BufferUsage::COPY_SRC, to_u8_slice(data));
 
         encoder.copy_buffer_to_buffer(
             &src_buffer,
@@ -184,11 +180,7 @@ impl<K: Hash + Eq + Clone + std::fmt::Debug, T: Copy + std::fmt::Debug + 'static
             self.segments.len() - 1
         });
         // Copy data into the buffer
-        let src_buffer = buffer_from_slice(
-            device,
-            wgpu::BufferUsage::COPY_SRC,
-            to_u8_slice(data)
-        );
+        let src_buffer = buffer_from_slice(device, wgpu::BufferUsage::COPY_SRC, to_u8_slice(data));
         encoder.copy_buffer_to_buffer(
             &src_buffer,
             0,
@@ -345,12 +337,16 @@ mod tests {
         let adapter = block_on(instance.request_adapter(&RequestAdapterOptions {
             compatible_surface: None,
             power_preference: PowerPreference::HighPerformance,
-        })).unwrap();
-        let (device, _queue) = block_on(adapter.request_device(&DeviceDescriptor {
-            features: wgpu::Features::empty(),
-            limits: Limits::default(),
-            shader_validation: true
-        }, None))
+        }))
+        .unwrap();
+        let (device, _queue) = block_on(adapter.request_device(
+            &DeviceDescriptor {
+                features: wgpu::Features::empty(),
+                limits: Limits::default(),
+                shader_validation: true,
+            },
+            None,
+        ))
         .expect("Failed to request device.");
         let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor { label: None });
 

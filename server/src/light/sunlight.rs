@@ -1,6 +1,6 @@
-use voxel_rs_common::world::{Chunk, CHUNK_SIZE};
 use super::HighestOpaqueBlock;
 use std::sync::Arc;
+use voxel_rs_common::world::{Chunk, CHUNK_SIZE};
 
 // TODO : Add block that are source of light
 
@@ -154,8 +154,12 @@ pub fn compute_light(
                     && MIN_VAL <= nz
                     && nz < MAX_VAL
                 {
-                    let s = (nx as usize) * csize * csize * 9 + (ny as usize) * csize * 3 + (nz as usize);
-                    if *opaque.get_unchecked(s as usize) { continue; }
+                    let s = (nx as usize) * csize * csize * 9
+                        + (ny as usize) * csize * 3
+                        + (nz as usize);
+                    if *opaque.get_unchecked(s as usize) {
+                        continue;
+                    }
                     let ref_light = light_data.get_unchecked_mut(s as usize);
                     if *ref_light < ll - 1 {
                         *ref_light = ll - 1;

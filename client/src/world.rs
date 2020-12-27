@@ -1,13 +1,13 @@
+use crate::render::world::{start_meshing_worker, ChunkMeshData, MeshingWorker};
+use crate::render::WorldRenderer;
 use std::collections::HashMap;
 use std::sync::Arc;
 use voxel_rs_common::{
     block::BlockMesh,
     physics::BlockContainer,
     player::{CloseChunks, RenderDistance},
-    world::{BlockPos, ChunkPos, Chunk, LightChunk},
+    world::{BlockPos, Chunk, ChunkPos, LightChunk},
 };
-use crate::render::WorldRenderer;
-use crate::render::world::{ChunkMeshData, MeshingWorker, start_meshing_worker};
 
 /// Client-side world.
 /// It is currently responsible for:
@@ -39,12 +39,15 @@ impl World {
     pub fn add_chunk(&mut self, chunk: Arc<Chunk>, light_chunk: Arc<LightChunk>) {
         // TODO: make sure this only happens once
         let chunk_pos = chunk.pos;
-        self.chunks.insert(chunk_pos, ClientChunk {
-            chunk,
-            light_chunk,
-            is_in_meshing_queue: false,
-            needs_remesh: true,
-        });
+        self.chunks.insert(
+            chunk_pos,
+            ClientChunk {
+                chunk,
+                light_chunk,
+                is_in_meshing_queue: false,
+                needs_remesh: true,
+            },
+        );
         // Queue adjacent chunks for meshing
         for i in -1..=1 {
             for j in -1..=1 {
@@ -74,7 +77,11 @@ impl World {
 
     /// Remove chunks that are too far for the player
     pub fn remove_far_chunks(&mut self, player_chunk: ChunkPos, render_distance: &RenderDistance) {
-        let Self { ref mut chunks, ref mut renderer, .. } = self;
+        let Self {
+            ref mut chunks,
+            ref mut renderer,
+            ..
+        } = self;
         chunks.retain(|chunk_pos, _| {
             if render_distance.is_chunk_visible(player_chunk, *chunk_pos) {
                 true
@@ -86,20 +93,26 @@ impl World {
     }
 
     /// Start the meshing of a few chunks
-    pub fn enqueue_chunks_for_meshing(&mut self, player_chunk: ChunkPos, render_distance: &RenderDistance) {
+    pub fn enqueue_chunks_for_meshing(
+        &mut self,
+        player_chunk: ChunkPos,
+        render_distance: &RenderDistance,
+    ) {
         self.close_chunks.update(render_distance);
         for pos in self.close_chunks.get_close_chunks() {
             let pos = pos.offset_by_pos(player_chunk);
             if let Some(client_chunk) = self.chunks.get(&pos) {
                 if client_chunk.needs_remesh && !client_chunk.is_in_meshing_queue {
-                    let res = self.meshing_worker.enqueue(self.create_chunk_mesh_data(pos));
+                    let res = self
+                        .meshing_worker
+                        .enqueue(self.create_chunk_mesh_data(pos));
                     match res {
                         // If the meshing queue is not full, update chunk status
                         Ok(()) => {
                             let client_chunk = self.chunks.get_mut(&pos).expect("Logic error");
                             client_chunk.needs_remesh = false;
                             client_chunk.is_in_meshing_queue = true;
-                        },
+                        }
                         // If the meshing queue is full, stop
                         Err(_) => break,
                     }
@@ -110,7 +123,10 @@ impl World {
 
     /// Create a `ChunkMeshData` for a loaded chunk
     fn create_chunk_mesh_data(&self, pos: ChunkPos) -> ChunkMeshData {
-        let client_chunk = self.chunks.get(&pos).expect("no chunk at current position to create ChunkMeshData");
+        let client_chunk = self
+            .chunks
+            .get(&pos)
+            .expect("no chunk at current position to create ChunkMeshData");
         let mut all_chunks: [Option<Arc<Chunk>>; 27] = Default::default();
         let mut all_light_chunks: [Option<Arc<LightChunk>>; 27] = Default::default();
         for i in 0..3 {
@@ -147,7 +163,16 @@ impl World {
     ) {
         // TODO: remove some of the parameters and calculate them here instead
         self.get_new_chunk_meshes(device, encoder);
-        self.renderer.render(device, encoder, buffers, data, frustum, enable_culling, pointed_block, models);
+        self.renderer.render(
+            device,
+            encoder,
+            buffers,
+            data,
+            frustum,
+            enable_culling,
+            pointed_block,
+            models,
+        );
     }
 
     /// Number of loaded chunks

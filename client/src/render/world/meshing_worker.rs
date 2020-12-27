@@ -2,8 +2,8 @@
 use super::meshing::{greedy_meshing, ChunkMeshData};
 use crate::render::world::ChunkVertex;
 use voxel_rs_common::block::BlockMesh;
+use voxel_rs_common::worker::{Worker, WorkerState};
 use voxel_rs_common::world::ChunkPos;
-use voxel_rs_common::worker::{WorkerState, Worker};
 
 pub type ChunkMesh = (ChunkPos, Vec<ChunkVertex>, Vec<u32>);
 pub type MeshingWorker = Worker<ChunkMeshData, ChunkMesh, MeshingState>;
@@ -33,7 +33,8 @@ impl MeshingState {
 impl WorkerState<ChunkMeshData, ChunkMesh> for MeshingState {
     fn compute(&mut self, input: ChunkMeshData) -> ChunkMesh {
         let pos = input.chunk.pos;
-        let (vertices, indices, _, _) = greedy_meshing(input, &self.block_meshes, &mut self.quads_reuse);
+        let (vertices, indices, _, _) =
+            greedy_meshing(input, &self.block_meshes, &mut self.quads_reuse);
         (pos, vertices, indices)
     }
 }

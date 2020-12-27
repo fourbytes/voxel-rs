@@ -12,6 +12,7 @@ use voxel_rs_common::{
 use crate::input::YawPitch;
 //use crate::model::model::Model;
 //use crate::world::meshing::ChunkMeshData;
+use crate::gui::Gui;
 use crate::render::{Frustum, UiRenderer, WorldRenderer};
 use crate::window::WindowBuffers;
 use crate::{
@@ -30,7 +31,6 @@ use voxel_rs_common::item::{Item, ItemMesh};
 use voxel_rs_common::physics::simulation::{ClientPhysicsSimulation, PhysicsState, ServerState};
 use voxel_rs_common::time::BreakdownCounter;
 use winit::event::{ElementState, MouseButton};
-use crate::gui::Gui;
 
 /// State of a singleplayer world
 pub struct SinglePlayer {
@@ -101,12 +101,8 @@ impl SinglePlayer {
         let mut encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
-        let world_renderer = WorldRenderer::new(
-            device,
-            &mut encoder,
-            data.texture_atlas,
-            &data.models,
-        );
+        let world_renderer =
+            WorldRenderer::new(device, &mut encoder, data.texture_atlas, &data.models);
 
         Ok((
             Box::new(Self {
@@ -177,6 +173,7 @@ impl State for SinglePlayer {
         // Collect input
         let frame_input =
             input_state.get_physics_input(self.yaw_pitch, self.ui.should_update_camera());
+
         // Send input to server
         self.client.send(ToServer::UpdateInput(frame_input));
         self.client_timing.record_part("Collect and send input");
@@ -208,14 +205,20 @@ impl State for SinglePlayer {
         );
 
         // Remove chunks that are too far
-        self.world.remove_far_chunks(player_chunk, &self.render_distance);
+        self.world
+            .remove_far_chunks(player_chunk, &self.render_distance);
         self.client_timing.record_part("Drop far chunks");
 
         // Send chunks to meshing
-        self.world.enqueue_chunks_for_meshing(player_chunk, &self.render_distance);
+        self.world
+            .enqueue_chunks_for_meshing(player_chunk, &self.render_distance);
         self.client_timing.record_part("Send chunks to meshing");
 
-        send_debug_info("Chunks", "clientloaded", format!("Client loaded {} chunks", self.world.num_loaded_chunks()));
+        send_debug_info(
+            "Chunks",
+            "clientloaded",
+            format!("Client loaded {} chunks", self.world.num_loaded_chunks()),
+        );
 
         flags.grab_cursor = self.ui.should_capture_mouse();
 
@@ -240,7 +243,7 @@ impl State for SinglePlayer {
         send_debug_info("Player", "fps", format!("fps = {}", self.fps_counter.fps()));
 
         let frustum = Frustum::new(
-            self.physics_simulation.get_camera_position(),
+            self.physics_simulation.get_camera_position().coords,
             self.yaw_pitch,
         );
 
@@ -329,7 +332,12 @@ impl State for SinglePlayer {
         );
         self.client_timing.record_part("Render UI");
 
-        send_perf_breakdown("Client performance", "mainloop", "Client main loop", self.client_timing.extract_part_averages());
+        send_perf_breakdown(
+            "Client performance",
+            "mainloop",
+            "Client main loop",
+            self.client_timing.extract_part_averages(),
+        );
 
         Ok((StateTransition::KeepCurrent, encoder.finish()))
     }
@@ -357,19 +365,22 @@ impl State for SinglePlayer {
             match *button {
                 MouseButton::Left => match *state {
                     ElementState::Pressed => {
-                        self.client.send(ToServer::BreakBlock(pp.aabb.pos, y, p));
+                        self.client
+                            .send(ToServer::BreakBlock(pp.position().coords, y, p));
                     }
                     _ => {}
                 },
                 MouseButton::Right => match *state {
                     ElementState::Pressed => {
-                        self.client.send(ToServer::PlaceBlock(pp.aabb.pos, y, p));
+                        self.client
+                            .send(ToServer::PlaceBlock(pp.position().coords, y, p));
                     }
                     _ => {}
                 },
                 MouseButton::Middle => match *state {
                     ElementState::Pressed => {
-                        self.client.send(ToServer::SelectBlock(pp.aabb.pos, y, p));
+                        self.client
+                            .send(ToServer::SelectBlock(pp.position().coords, y, p));
                     }
                     _ => {}
                 },

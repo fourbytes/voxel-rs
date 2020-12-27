@@ -2,7 +2,7 @@ use crate::{
     block::{Block, BlockId},
     registry::Registry,
 };
-use nalgebra::Vector3;
+use nalgebra::Point3;
 
 /// The position of a block in the world.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -48,12 +48,12 @@ impl From<(f64, f64, f64)> for BlockPos {
     }
 }
 
-impl From<Vector3<f64>> for BlockPos {
-    fn from(vec: Vector3<f64>) -> Self {
+impl From<Point3<f64>> for BlockPos {
+    fn from(point: Point3<f64>) -> Self {
         Self {
-            px: vec[0].floor() as i64,
-            py: vec[1].floor() as i64,
-            pz: vec[2].floor() as i64,
+            px: point[0].floor() as i64,
+            py: point[1].floor() as i64,
+            pz: point[2].floor() as i64,
         }
     }
 }
@@ -157,7 +157,6 @@ impl From<ChunkPos> for ChunkPosXZ {
     }
 }
 
-
 /// An RLE-compressed chunk
 #[derive(Debug, Clone)]
 pub struct CompressedChunk {
@@ -190,11 +189,15 @@ impl CompressedChunk {
 
     /// Recover original chunk
     pub fn to_chunk(&self) -> Chunk {
-        let mut data = unsafe { crate::collections::zero_initialized_vec((CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE) as usize) };
+        let mut data = unsafe {
+            crate::collections::zero_initialized_vec(
+                (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE) as usize,
+            )
+        };
 
         let mut i = 0;
         for &(len, block) in self.data.iter() {
-            for el in &mut data[(i as usize)..((i+len) as usize)] {
+            for el in &mut data[(i as usize)..((i + len) as usize)] {
                 *el = block;
             }
             i += len;
@@ -289,8 +292,10 @@ impl LightChunk {
 
     /// Get light at some position without bound checking
     #[inline(always)]
-    pub  unsafe fn get_light_at_unsafe(&self, (px, py, pz): (u32, u32, u32)) -> u8 {
-        *self.light.get_unchecked((px * CHUNK_SIZE * CHUNK_SIZE + py * CHUNK_SIZE + pz) as usize)
+    pub unsafe fn get_light_at_unsafe(&self, (px, py, pz): (u32, u32, u32)) -> u8 {
+        *self
+            .light
+            .get_unchecked((px * CHUNK_SIZE * CHUNK_SIZE + py * CHUNK_SIZE + pz) as usize)
     }
 }
 
@@ -327,11 +332,15 @@ impl CompressedLightChunk {
 
     /// Recover original chunk
     pub fn to_chunk(&self) -> LightChunk {
-        let mut light = unsafe { crate::collections::zero_initialized_vec((CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE) as usize) };
+        let mut light = unsafe {
+            crate::collections::zero_initialized_vec(
+                (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE) as usize,
+            )
+        };
 
         let mut i = 0;
         for &(len, block) in self.data.iter() {
-            for el in &mut light[(i as usize)..((i+len) as usize)] {
+            for el in &mut light[(i as usize)..((i + len) as usize)] {
                 *el = block;
             }
             i += len;

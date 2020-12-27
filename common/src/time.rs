@@ -100,10 +100,12 @@ impl BreakdownCounter {
         self.last_time = now;
 
         if i == 0 {
-            self.times.push_back((now, Vec::with_capacity(self.times.back().map(|x| x.1.len()).unwrap_or_default())));
+            self.times.push_back((
+                now,
+                Vec::with_capacity(self.times.back().map(|x| x.1.len()).unwrap_or_default()),
+            ));
         }
         self.times.back_mut().unwrap().1.push(d);
-
 
         if i < self.total_micros.len() {
             self.total_micros[i] += d.as_micros();
@@ -115,6 +117,10 @@ impl BreakdownCounter {
     /// Extract part averages
     pub fn extract_part_averages(&mut self) -> Vec<(String, f64)> {
         let total_micros = self.total_micros.iter().sum::<u128>() as f64;
-        self.part_names.drain(..).zip(self.total_micros.iter()).map(|(s, m)| (s, *m as f64 / total_micros)).collect()
+        self.part_names
+            .drain(..)
+            .zip(self.total_micros.iter())
+            .map(|(s, m)| (s, *m as f64 / total_micros))
+            .collect()
     }
 }
