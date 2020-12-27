@@ -52,6 +52,7 @@ pub struct SinglePlayer {
     debug_info: DebugInfo,
     start_time: Instant,
     client_timing: BreakdownCounter,
+    looking_at: Option<(BlockPos, usize)>
 }
 
 impl SinglePlayer {
@@ -129,6 +130,7 @@ impl SinglePlayer {
                 debug_info: DebugInfo::new_current(),
                 start_time: Instant::now(),
                 client_timing: BreakdownCounter::new(),
+                looking_at: None
             }),
             encoder.finish(),
         ))
@@ -165,6 +167,8 @@ impl State for SinglePlayer {
         _seconds_delta: f64,
         _device: &mut wgpu::Device,
     ) -> Result<StateTransition> {
+        send_debug_info("Player", "fps", format!("fps = {}", self.fps_counter.fps()));
+
         self.client_timing.start_frame();
         // Handle server messages
         self.handle_server_messages();
@@ -185,6 +189,28 @@ impl State for SinglePlayer {
 
         let p = self.physics_simulation.get_camera_position();
         let player_chunk = BlockPos::from(p).containing_chunk_pos();
+
+        // Apply raytracing to get the pointed at block.
+        let pp = self.physics_simulation.get_player();
+        self.looking_at = {
+            let y = self.yaw_pitch.yaw.to_radians();
+            let p = self.yaw_pitch.pitch.to_radians();
+            let dir = Vector3::new(-y.sin() * p.cos(), p.sin(), -y.cos() * p.cos());
+            pp.get_pointed_at(dir, 10.0, &self.world)
+        };
+        if let Some((x, face)) = self.looking_at {
+            send_debug_info(
+                "Player",
+                "pointedat",
+                format!(
+                    "Pointed block: Some({}, {}, {}), face: {}",
+                    x.px, x.py, x.pz, face
+                ),
+            );
+        } else {
+            send_debug_info("Player", "pointedat", "Pointed block: None");
+        }
+        self.client_timing.record_part("Raytrace");
 
         // Debug current player position, yaw and pitch
         send_debug_info(
@@ -238,36 +264,12 @@ impl State for SinglePlayer {
         data: &WindowData,
         input_state: &InputState,
     ) -> Result<(StateTransition, wgpu::CommandBuffer)> {
-        // Count fps TODO: move this to update
         self.fps_counter.add_frame();
-        send_debug_info("Player", "fps", format!("fps = {}", self.fps_counter.fps()));
 
         let frustum = Frustum::new(
             self.physics_simulation.get_camera_position().coords,
             self.yaw_pitch,
         );
-
-        // Try raytracing TODO: move this to update
-        let pp = self.physics_simulation.get_player();
-        let pointed_block = {
-            let y = self.yaw_pitch.yaw.to_radians();
-            let p = self.yaw_pitch.pitch.to_radians();
-            let dir = Vector3::new(-y.sin() * p.cos(), p.sin(), -y.cos() * p.cos());
-            pp.get_pointed_at(dir, 10.0, &self.world)
-        };
-        if let Some((x, face)) = pointed_block {
-            send_debug_info(
-                "Player",
-                "pointedat",
-                format!(
-                    "Pointed block: Some({}, {}, {}), face: {}",
-                    x.px, x.py, x.pz, face
-                ),
-            );
-        } else {
-            send_debug_info("Player", "pointedat", "Pointed block: None");
-        }
-        self.client_timing.record_part("Raytrace");
 
         // Begin rendering
         let mut encoder =
@@ -309,7 +311,7 @@ impl State for SinglePlayer {
             data,
             &frustum,
             input_state.enable_culling,
-            pointed_block,
+            self.looking_at,
             &models_to_draw,
         );
         self.client_timing.record_part("Render chunks");
