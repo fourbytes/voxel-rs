@@ -8,6 +8,7 @@ use winit::dpi::LogicalPosition;
 
 //pub mod rewrite;
 pub mod widgets;
+//pub mod compositor;
 
 // TODO: rewrite ui because it's very badly designed
 

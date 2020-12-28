@@ -67,7 +67,7 @@ fn write_settings(path: impl AsRef<Path>, settings: &Settings) -> Result<()> {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(default)]
 pub struct Settings {
-    pub window_size: (u32, u32),
+    pub window_size: [u16; 2],
     pub invert_mouse: bool,
     pub render_distance: (u64, u64, u64, u64, u64, u64),
 }
@@ -75,7 +75,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            window_size: (1600, 900),
+            window_size: [1600, 900],
             invert_mouse: false,
             render_distance: (16, 16, 16, 16, 16, 16),
         }

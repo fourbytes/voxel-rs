@@ -342,6 +342,8 @@ impl State for SinglePlayer {
         Ok((StateTransition::KeepCurrent, encoder.finish()))
     }
 
+    fn handle_window_event(&mut self, event: winit::event::WindowEvent, input_state: &InputState) {}
+
     fn handle_mouse_motion(&mut self, _settings: &Settings, delta: (f64, f64)) {
         if self.ui.should_update_camera() {
             self.yaw_pitch.update_cursor(delta.0, delta.1);
