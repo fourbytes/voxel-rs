@@ -210,7 +210,11 @@ impl WorldRenderer {
         Self {
             uniform_view_proj,
             uniform_model,
-            chunk_index_buffers: MultiBuffer::with_capacity(device, 123040, wgpu::BufferUsage::INDEX),
+            chunk_index_buffers: MultiBuffer::with_capacity(
+                device,
+                123040,
+                wgpu::BufferUsage::INDEX,
+            ),
             chunk_vertex_buffers: MultiBuffer::with_capacity(
                 device,
                 43680,

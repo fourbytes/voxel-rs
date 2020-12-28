@@ -48,7 +48,10 @@ impl super::Server for DummyServer {
     }
 
     fn send(&mut self, _: PlayerId, message: ToClient) {
-        self.to_client.send(message).unwrap();
+        self.to_client
+            .send(message)
+            .map_err(|e| log::error!("Failed to send message to client: {:?}", e))
+            .ok();
     }
 }
 

@@ -21,6 +21,8 @@ pub enum ToServer {
     SelectBlock(Vector3<f64>, f64, f64),
     /// Place a block
     PlaceBlock(Vector3<f64>, f64, f64),
+    /// Tell the server to shutdown
+    StopServer,
 }
 
 /// A message sent to the client by the server

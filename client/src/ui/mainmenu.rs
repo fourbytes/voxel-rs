@@ -6,10 +6,10 @@ use winit::event::ModifiersState;
 use crate::{
     fps::FpsCounter,
     input::InputState,
+    render::iced::IcedRenderer,
     settings::Settings,
     singleplayer::SinglePlayer,
     window::{State, StateFactory, StateTransition, WindowBuffers, WindowData, WindowFlags},
-    render::iced::IcedRenderer,
 };
 use voxel_rs_common::network::dummy;
 use voxel_rs_server::launch_server;
@@ -22,13 +22,15 @@ pub struct MainMenu {
 
 impl MainMenu {
     pub fn new_factory() -> crate::window::StateFactory {
-        Box::new(move |device, _settings, window_data, modifiers_state| Self::new(device, window_data, modifiers_state))
+        Box::new(move |device, _settings, window_data, modifiers_state| {
+            Self::new(device, window_data, modifiers_state)
+        })
     }
 
     pub fn new(
         device: &mut wgpu::Device,
         window_data: &WindowData,
-        modifiers_state: &ModifiersState
+        modifiers_state: &ModifiersState,
     ) -> Result<(Box<dyn State>, wgpu::CommandBuffer)> {
         log::info!("Initializing main menu");
 
@@ -40,7 +42,7 @@ impl MainMenu {
             MainMenuControls::new(),
             device,
             window_data,
-            modifiers_state
+            modifiers_state,
         );
 
         Ok((
@@ -112,12 +114,7 @@ impl State for MainMenu {
         crate::render::clear_color_and_depth(&mut encoder, buffers);
 
         // Render Iced UI
-        self.ui_renderer.render(
-            device,
-            buffers,
-            &mut encoder,
-            None
-        );
+        self.ui_renderer.render(device, buffers, &mut encoder, None);
 
         Ok((StateTransition::KeepCurrent, encoder.finish()))
     }

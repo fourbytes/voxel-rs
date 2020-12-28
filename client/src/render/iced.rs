@@ -82,7 +82,7 @@ where
             self.viewport.logical_size(),
             Point::new(self.cursor_position.x as f32, self.cursor_position.y as f32),
             &mut self.renderer,
-            &mut self.debug
+            &mut self.debug,
         )
     }
 
@@ -99,7 +99,7 @@ where
     }
 
     pub fn handle_window_event(&mut self, event: winit::event::WindowEvent) {
-        log::trace!("Received window event: {:?}", event);
+        // log::trace!("Received window event: {:?}", event);
         if let Some(event) = iced_winit::conversion::window_event(
             &event,
             self.viewport.scale_factor(),

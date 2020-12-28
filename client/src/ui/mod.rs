@@ -6,9 +6,9 @@ use quint::{wt, Size, Style, WidgetTree};
 use wgpu_glyph::ab_glyph::PxScale;
 use winit::dpi::LogicalPosition;
 
-pub mod widgets;
 pub mod mainmenu;
 pub mod pausemenu;
+pub mod widgets;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Message {

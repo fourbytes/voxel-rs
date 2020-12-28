@@ -45,11 +45,8 @@ impl Program for PauseMenuControls {
             .width(Length::Units(500))
             .spacing(20)
             .push(
-                button::Button::new(
-                    &mut self.resume_button_state,
-                    Text::new("Resume Game"),
-                )
-                .on_press(Message::ResumeGame),
+                button::Button::new(&mut self.resume_button_state, Text::new("Resume Game"))
+                    .on_press(Message::ResumeGame),
             )
             .push(
                 button::Button::new(&mut self.exit_button_state, Text::new("Exit Game"))

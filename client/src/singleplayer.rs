@@ -30,7 +30,7 @@ use voxel_rs_common::debug::{send_debug_info, send_perf_breakdown, DebugInfo};
 use voxel_rs_common::item::{Item, ItemMesh};
 use voxel_rs_common::physics::simulation::{ClientPhysicsSimulation, PhysicsState, ServerState};
 use voxel_rs_common::time::BreakdownCounter;
-use winit::event::{ModifiersState, ElementState, MouseButton};
+use winit::event::{ElementState, ModifiersState, MouseButton};
 
 /// State of a singleplayer world
 pub struct SinglePlayer {
@@ -53,9 +53,18 @@ pub struct SinglePlayer {
     client_timing: BreakdownCounter,
 }
 
+impl Drop for SinglePlayer {
+    fn drop(&mut self) {
+        log::info!("Dropping singleplayer state.");
+        self.client.send(ToServer::StopServer);
+    }
+}
+
 impl SinglePlayer {
     pub fn new_factory(client: Box<dyn Client>) -> crate::window::StateFactory {
-        Box::new(move |device, settings, window_data, modifiers_state| Self::new(settings, device, window_data, modifiers_state, client))
+        Box::new(move |device, settings, window_data, modifiers_state| {
+            Self::new(settings, device, window_data, modifiers_state, client)
+        })
     }
 
     pub fn new(
@@ -97,12 +106,12 @@ impl SinglePlayer {
         };
         client.send(ToServer::SetRenderDistance(render_distance));
 
-        // Create the renderers
+        // Create the UI renderers
         let pause_menu_renderer = IcedRenderer::new(
             PauseMenuControls::new(),
             device,
             window_data,
-            modifiers_state
+            modifiers_state,
         );
 
         let mut encoder =
@@ -179,8 +188,7 @@ impl State for SinglePlayer {
         self.client_timing.record_part("Network events");
 
         // Collect input
-        let frame_input =
-            input_state.get_physics_input(self.yaw_pitch, !self.is_paused);
+        let frame_input = input_state.get_physics_input(self.yaw_pitch, !self.is_paused);
 
         // Send input to server
         self.client.send(ToServer::UpdateInput(frame_input));
@@ -232,7 +240,9 @@ impl State for SinglePlayer {
 
         if self.pause_menu_renderer.state.program().should_exit {
             self.pause_menu_renderer.reset(PauseMenuControls::new());
-            Ok(StateTransition::ReplaceCurrent(crate::ui::mainmenu::MainMenu::new_factory()))
+            Ok(StateTransition::ReplaceCurrent(
+                crate::ui::mainmenu::MainMenu::new_factory(),
+            ))
         } else if self.pause_menu_renderer.state.program().should_resume {
             self.is_paused = false;
             self.pause_menu_renderer.reset(PauseMenuControls::new());
@@ -345,7 +355,12 @@ impl State for SinglePlayer {
         crate::render::encode_resolve_render_pass(&mut encoder, buffers);
 
         if self.is_paused {
-            self.pause_menu_renderer.render(device, buffers, &mut encoder, Some(vec!["Paused".to_string()]));
+            self.pause_menu_renderer.render(
+                device,
+                buffers,
+                &mut encoder,
+                Some(vec!["Paused".to_string()]),
+            );
         }
 
         self.client_timing.record_part("Render UI");
@@ -371,7 +386,8 @@ impl State for SinglePlayer {
     }
 
     fn handle_cursor_movement(&mut self, logical_position: winit::dpi::LogicalPosition<f64>) {
-        self.pause_menu_renderer.handle_cursor_movement(logical_position);
+        self.pause_menu_renderer
+            .handle_cursor_movement(logical_position);
     }
 
     fn handle_mouse_state_changes(
