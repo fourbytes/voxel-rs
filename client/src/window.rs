@@ -91,7 +91,7 @@ pub trait State {
 pub const COLOR_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
 /// Format of the window's depth buffer
 pub const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
-pub const PRESENT_MODE: wgpu::PresentMode = wgpu::PresentMode::Mailbox;
+pub const PRESENT_MODE: wgpu::PresentMode = wgpu::PresentMode::Immediate;
 
 /// Open a new window with the given settings and the given initial state
 pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
@@ -360,39 +360,44 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
                 }
 
                 // Render frame
-                let swap_chain_output = swap_chain
-                    .get_current_frame()
-                    .expect("Failed to unwrap swap chain output.");
-                let (state_transition, commands) = state
-                    .render(
-                        &settings,
-                        WindowBuffers {
-                            texture_buffer: &swap_chain_output.output.view,
-                            multisampled_texture_buffer: &msaa_texture_view,
-                            depth_buffer: &depth_texture_view,
-                        },
-                        &mut device,
-                        &window_data,
-                        &input_state,
-                    )
-                    .expect("Failed to `render` the current window state");
-                queue.submit(vec![commands]);
-                match state_transition {
-                    StateTransition::KeepCurrent => (),
-                    StateTransition::ReplaceCurrent(new_state) => {
-                        let (new_state, cmd) = new_state(
-                            &mut device,
-                            &mut settings,
-                            &window_data,
-                            &input_state._get_modifiers_state(),
-                        )
-                        .expect("Failed to create next window state");
-                        state = new_state;
-                        queue.submit(vec![cmd]);
+                match swap_chain.get_current_frame() {
+                    Ok(swap_chain_output) => {
+                        let (state_transition, commands) = state
+                            .render(
+                                &settings,
+                                WindowBuffers {
+                                    texture_buffer: &swap_chain_output.output.view,
+                                    multisampled_texture_buffer: &msaa_texture_view,
+                                    depth_buffer: &depth_texture_view,
+                                },
+                                &mut device,
+                                &window_data,
+                                &input_state,
+                            )
+                            .expect("Failed to `render` the current window state");
+                        queue.submit(vec![commands]);
+                        match state_transition {
+                            StateTransition::KeepCurrent => (),
+                            StateTransition::ReplaceCurrent(new_state) => {
+                                let (new_state, cmd) = new_state(
+                                    &mut device,
+                                    &mut settings,
+                                    &window_data,
+                                    &input_state._get_modifiers_state(),
+                                )
+                                .expect("Failed to create next window state");
+                                state = new_state;
+                                queue.submit(vec![cmd]);
+                            }
+                            StateTransition::CloseWindow => {
+                                *control_flow = ControlFlow::Exit;
+                            }
+                        }
                     }
-                    StateTransition::CloseWindow => {
-                        *control_flow = ControlFlow::Exit;
-                    }
+                    Err(e) => match e {
+                        wgpu::SwapChainError::Outdated => window_resized = true,
+                        e => log::error!("Couldn't get current frame from swapchain: {:?}", e),
+                    },
                 }
             }
             RedrawRequested(_) => (), // TODO: handle this
