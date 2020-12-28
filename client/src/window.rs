@@ -177,7 +177,7 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
             logical_window_size,
             physical_window_size,
             scale_factor,
-            focused: false,
+            focused: true,
         }
     };
 
@@ -223,6 +223,7 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
                     DroppedFile(_) | HoveredFile(_) | HoveredFileCancelled => (),
                     ReceivedCharacter(_) => (),
                     Focused(focused) => {
+                        log::debug!("Updated window focus state to {:?}", focused);
                         window_data.focused = focused;
                         input_state.clear();
                     }
