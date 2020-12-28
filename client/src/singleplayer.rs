@@ -180,7 +180,6 @@ impl State for SinglePlayer {
         _seconds_delta: f64,
         _device: &mut wgpu::Device,
     ) -> Result<StateTransition> {
-        log::trace!("Updating");
         self.client_timing.start_frame();
         self.pause_menu_renderer.update(window_data);
 
@@ -261,7 +260,6 @@ impl State for SinglePlayer {
         data: &WindowData,
         input_state: &InputState,
     ) -> Result<(StateTransition, wgpu::CommandBuffer)> {
-        log::trace!("Rendering");
         // Count fps TODO: move this to update
         self.fps_counter.add_frame();
         send_debug_info("Player", "fps", format!("fps = {}", self.fps_counter.fps()));

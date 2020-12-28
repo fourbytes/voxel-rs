@@ -341,6 +341,7 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
                     StateTransition::KeepCurrent => (),
                     StateTransition::ReplaceCurrent(new_state) => {
                         info!("Transitioning to a new window state...");
+                        window_resized = true; // TODO: Fix
                         let (new_state, cmd) = new_state(
                             &mut device,
                             &mut settings,
