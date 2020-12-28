@@ -6,10 +6,9 @@ use quint::{wt, Size, Style, WidgetTree};
 use wgpu_glyph::ab_glyph::PxScale;
 use winit::dpi::LogicalPosition;
 
-//pub mod rewrite;
+pub mod mainmenu;
+pub mod pausemenu;
 pub mod widgets;
-
-// TODO: rewrite ui because it's very badly designed
 
 #[derive(Debug, Clone, Copy)]
 pub enum Message {

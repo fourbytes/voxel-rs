@@ -43,6 +43,7 @@ where
     }
 
     fn render(&self, buffer: &mut PrimitiveBuffer, cursor_position: Position, mut l: Layout) {
+        log::info!("Rendering button at {:?}", l);
         let hovering = l.is_position_inside(cursor_position);
         // Padded Layout
         let mut pl = l.with_padding(6.0);

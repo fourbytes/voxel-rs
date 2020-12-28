@@ -27,6 +27,12 @@ pub struct DebugInfo {
     next_id: u32,
 }
 
+impl Drop for DebugInfo {
+    fn drop(&mut self) {
+        *DEBUG_INFO.write().unwrap() = None;
+    }
+}
+
 impl DebugInfo {
     /// Create a new `DebugInfo` struct and make it the current one.
     pub fn new_current() -> Self {
@@ -66,7 +72,7 @@ pub fn send_debug_info(section: impl ToString, id: impl ToString, message: impl 
                 id: id.to_string(),
                 part: DebugInfoPart::Message(message.to_string()),
             })
-            .unwrap()
+            .map_err(|e| log::error!("Error sending debug info: {:?}", e))
     });
 }
 
@@ -101,7 +107,7 @@ pub fn send_worker_perf(
                     pending,
                 }),
             })
-            .unwrap()
+            .map_err(|e| log::error!("Error sending worker perf debug info: {:?}", e))
     });
 }
 
@@ -119,6 +125,6 @@ pub fn send_perf_breakdown(
                 id: id.to_string(),
                 part: DebugInfoPart::PerfBreakdown(name.to_string(), breakdown),
             })
-            .unwrap()
+            .map_err(|e| log::error!("Error sending perf breakdown debug info: {:?}", e))
     });
 }

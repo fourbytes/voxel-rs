@@ -118,13 +118,12 @@ impl<'a> UiRenderer {
         }
     }
 
-    pub fn render<Message>(
+    pub fn render(
         &mut self,
         buffers: WindowBuffers<'a>,
         device: &mut wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         window_data: &WindowData,
-        _ui: &quint::Ui<PrimitiveBuffer, Message>,
         gui: &mut crate::gui::Gui,
         draw_crosshair: bool,
     ) {
@@ -191,9 +190,9 @@ impl<'a> UiRenderer {
             w,
             h,
             mut parts,
-            z,
             center_horizontally,
             center_vertically,
+            ..
         } in primitive_buffer.text.into_iter()
         {
             let dpi = window_data.scale_factor as f32;

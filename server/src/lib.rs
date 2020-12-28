@@ -159,6 +159,10 @@ pub fn launch_server(mut server: Box<dyn Server>) -> Result<()> {
                             }
                         }
                     }
+                    ToServer::StopServer => {
+                        log::info!("Shutting down server.");
+                        return Ok(());
+                    }
                 },
             }
         }

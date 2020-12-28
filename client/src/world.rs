@@ -24,6 +24,10 @@ pub struct World {
     renderer: WorldRenderer,
 }
 
+impl Drop for World {
+    fn drop(&mut self) {}
+}
+
 impl World {
     /// Create a new empty world using the provided chunks
     pub fn new(block_meshes: Vec<BlockMesh>, renderer: WorldRenderer) -> Self {

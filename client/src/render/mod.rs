@@ -14,6 +14,7 @@ mod frustum;
 pub use self::frustum::Frustum;
 
 /* RENDERING-RESPONSIBLE MODULES */
+pub mod iced;
 mod ui;
 pub mod world;
 pub use self::ui::UiRenderer;

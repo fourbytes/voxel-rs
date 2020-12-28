@@ -34,6 +34,10 @@ winit = "0.24"
 # Gui
 quint = { path = "../quint" }
 wgpu_glyph = "0.10"
+iced = "0.2"
+iced_winit = "0.2"
+iced_wgpu = "0.3"
+iced_native = "0.3"
 
 # Math
 nalgebra = "0.23"

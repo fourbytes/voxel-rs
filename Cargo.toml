@@ -4,3 +4,9 @@ members = ["client", "common", "network", "quint", "server"]
 [profile.release]
 debug = true
 opt-level = 3
+
+[patch.crates-io]
+iced_winit = { git = "https://github.com/hecrj/iced.git", path = "winit", rev = "f8aef03" }
+iced_wgpu = { git = "https://github.com/hecrj/iced.git", path = "wgpu", rev = "f8aef03" }
+iced_native = { git = "https://github.com/hecrj/iced.git", path = "native", rev = "f8aef03" }
+iced = { git = "https://github.com/hecrj/iced.git", rev = "f8aef03" }
