@@ -114,6 +114,7 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
         compatible_surface: Some(&surface),
     }))
     .expect("Failed to create adapter");
+    // TODO: device should be immutable
     let (mut device, queue) = block_on(adapter.request_device(
         &wgpu::DeviceDescriptor {
             features: wgpu::Features::empty(),
