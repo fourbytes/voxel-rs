@@ -118,13 +118,12 @@ impl<'a> UiRenderer {
         }
     }
 
-    pub fn render<Message>(
+    pub fn render(
         &mut self,
         buffers: WindowBuffers<'a>,
         device: &mut wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         window_data: &WindowData,
-        _ui: &quint::Ui<PrimitiveBuffer, Message>,
         gui: &mut crate::gui::Gui,
         draw_crosshair: bool,
     ) {

@@ -1,5 +1,7 @@
 use iced_wgpu::{button, Renderer};
-use iced_winit::{program::Program, Command, Element, Length, Row, Text};
+use iced_winit::{
+    program::Program, Align, Column, Command, Element, HorizontalAlignment, Length, Text,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Message {
@@ -41,16 +43,30 @@ impl Program for PauseMenuControls {
     }
 
     fn view(&mut self) -> Element<Message, Renderer> {
-        Row::new()
-            .width(Length::Units(500))
+        Column::new()
+            .padding(60)
+            .width(Length::Fill)
+            .align_items(Align::Center)
             .spacing(20)
             .push(
-                button::Button::new(&mut self.resume_button_state, Text::new("Resume Game"))
-                    .on_press(Message::ResumeGame),
+                button::Button::new(
+                    &mut self.resume_button_state,
+                    Text::new("Resume Game")
+                        .size(30)
+                        .horizontal_alignment(HorizontalAlignment::Center),
+                )
+                .width(Length::Units(300))
+                .on_press(Message::ResumeGame),
             )
             .push(
-                button::Button::new(&mut self.exit_button_state, Text::new("Exit Game"))
-                    .on_press(Message::ExitGame),
+                button::Button::new(
+                    &mut self.exit_button_state,
+                    Text::new("Exit Game")
+                        .size(30)
+                        .horizontal_alignment(HorizontalAlignment::Center),
+                )
+                .width(Length::Units(300))
+                .on_press(Message::ExitGame),
             )
             .into()
     }

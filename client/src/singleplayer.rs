@@ -37,6 +37,8 @@ pub struct SinglePlayer {
     fps_counter: FpsCounter,
     is_paused: bool,
     pause_menu_renderer: IcedRenderer<PauseMenuControls, pausemenu::Message>,
+    gui: Gui,
+    ui_renderer: UiRenderer,
     world: World,
     #[allow(dead_code)] // TODO: remove this
     block_registry: Registry<Block>,
@@ -125,6 +127,8 @@ impl SinglePlayer {
                 fps_counter: FpsCounter::new(),
                 is_paused: false,
                 pause_menu_renderer,
+                gui: Gui::new(),
+                ui_renderer: UiRenderer::new(device),
                 world: World::new(data.meshes.clone(), world_renderer),
                 block_registry: data.blocks,
                 model_registry: data.models,
@@ -340,7 +344,8 @@ impl State for SinglePlayer {
 
         // Draw ui
         // self.ui.rebuild(data)?;
-        /*self.gui.prepare();
+        // crate::render::encode_resolve_render_pass(&mut encoder, buffers);
+        self.gui.prepare();
         crate::gui::experiments::render_debug_info(&mut self.gui, &mut self.debug_info);
         self.gui.finish();
         self.ui_renderer.render(
@@ -348,19 +353,12 @@ impl State for SinglePlayer {
             device,
             &mut encoder,
             &data,
-            &self.ui.ui,
             &mut self.gui,
-            self.ui.should_capture_mouse(),
-        );*/
-        crate::render::encode_resolve_render_pass(&mut encoder, buffers);
-
+            !self.is_paused,
+        );
         if self.is_paused {
-            self.pause_menu_renderer.render(
-                device,
-                buffers,
-                &mut encoder,
-                Some(vec!["Paused".to_string()]),
-            );
+            self.pause_menu_renderer
+                .render(device, buffers, &mut encoder, None);
         }
 
         self.client_timing.record_part("Render UI");
@@ -388,13 +386,29 @@ impl State for SinglePlayer {
     fn handle_cursor_movement(&mut self, logical_position: winit::dpi::LogicalPosition<f64>) {
         self.pause_menu_renderer
             .handle_cursor_movement(logical_position);
+        let (x, y) = logical_position.into();
+        self.gui.update_mouse_position(x, y);
     }
 
     fn handle_mouse_state_changes(
         &mut self,
         changes: Vec<(winit::event::MouseButton, winit::event::ElementState)>,
     ) {
-        if !self.is_paused {
+        if self.is_paused {
+            for (button, state) in changes.iter() {
+                match *button {
+                    MouseButton::Left => match *state {
+                        ElementState::Pressed => {
+                            self.gui.update_mouse_button(true);
+                        }
+                        ElementState::Released => {
+                            self.gui.update_mouse_button(false);
+                        }
+                    },
+                    _ => {}
+                }
+            }
+        } else {
             for (button, state) in changes.iter() {
                 let pp = self.physics_simulation.get_player();
                 let y = self.yaw_pitch.yaw;
@@ -424,7 +438,6 @@ impl State for SinglePlayer {
                     _ => {}
                 }
             }
-            // self.ui.handle_mouse_state_changes(changes);
         }
     }
 
