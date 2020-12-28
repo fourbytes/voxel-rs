@@ -28,12 +28,19 @@ impl PhysicsState {
     pub fn step_simulation<BC: BlockContainer>(&mut self, input: &Input, dt: Duration, world: &BC) {
         let seconds_delta = dt.as_secs_f64();
         for (&id, input) in input.player_inputs.iter() {
-            let player = self.players.entry(id).or_insert(Default::default());
-            default_camera(player, *input, seconds_delta, world);
+            default_camera(self.get_player_mut(id), *input, seconds_delta, world);
         }
         // Remove players that don't exist anymore
         self.players
             .retain(|id, _| input.player_inputs.contains_key(id));
+    }
+
+    pub fn get_player(&mut self, id: PlayerId) -> &PhysicsPlayer {
+        self.players.entry(id).or_insert(Default::default())
+    }
+
+    pub fn get_player_mut(&mut self, id: PlayerId) -> &mut PhysicsPlayer {
+        self.players.entry(id).or_insert(Default::default())
     }
 }
 
@@ -93,8 +100,8 @@ impl ClientPhysicsSimulation {
     }
 
     /// Get the client player
-    pub fn get_player(&self) -> &PhysicsPlayer {
-        self.current_state.players.get(&self.player_id).unwrap()
+    pub fn get_player(&mut self) -> &PhysicsPlayer {
+        self.current_state.get_player(self.player_id)
     }
 
     /// Step the simulation according to the current input and time
