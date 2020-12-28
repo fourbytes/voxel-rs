@@ -1,7 +1,6 @@
 use anyhow::Result;
 use iced_wgpu::{button, Renderer};
 use iced_winit::{conversion, program, Command, Element, Length, Row, Size, Text, Viewport};
-use winit::event::ModifiersState;
 
 use crate::{
     fps::FpsCounter,
@@ -105,7 +104,7 @@ impl State for MainMenu {
     fn update(
         &mut self,
         _settings: &mut Settings,
-        input_state: &InputState,
+        _input_state: &InputState,
         _data: &WindowData,
         flags: &mut WindowFlags,
         _seconds_delta: f64,
@@ -124,11 +123,11 @@ impl State for MainMenu {
 
     fn render<'a>(
         &mut self,
-        settings: &Settings,
+        _settings: &Settings,
         buffers: WindowBuffers<'a>,
         device: &mut wgpu::Device,
         data: &WindowData,
-        input_state: &InputState,
+        _input_state: &InputState,
     ) -> Result<(StateTransition, wgpu::CommandBuffer)> {
         self.window_data = Some(data.clone());
         let viewport = Viewport::with_physical_size(
@@ -154,6 +153,7 @@ impl State for MainMenu {
 
         // Rebuild ui
         let mut staging_belt = wgpu::util::StagingBelt::new(128);
+        let debug_info: Vec<String> = vec![];
         self.ui_renderer.backend_mut().draw(
             device,
             &mut staging_belt,
@@ -161,7 +161,7 @@ impl State for MainMenu {
             buffers.texture_buffer,
             &viewport,
             self.state.primitive(),
-            &["Main Menu"],
+            &debug_info,
         );
 
         staging_belt.finish();
@@ -183,8 +183,6 @@ impl State for MainMenu {
         }
     }
 
-    fn handle_mouse_motion(&mut self, _: &Settings, _: (f64, f64)) {}
-
     fn handle_cursor_movement(&mut self, logical_position: winit::dpi::LogicalPosition<f64>) {
         let (x, y) = logical_position
             .to_physical::<f64>(
@@ -194,19 +192,18 @@ impl State for MainMenu {
                     .unwrap_or(1.0),
             )
             .into();
-        self.cursor_position = iced_winit::winit::dpi::PhysicalPosition::new(x, y)
+        self.cursor_position = winit::dpi::PhysicalPosition::new(x, y)
     }
+
+    fn handle_mouse_motion(&mut self, _: &Settings, _: (f64, f64)) {}
 
     fn handle_mouse_state_changes(
         &mut self,
-        changes: Vec<(winit::event::MouseButton, winit::event::ElementState)>,
+        _: Vec<(winit::event::MouseButton, winit::event::ElementState)>,
     ) {
-        //self.ui.handle_mouse_state_changes(changes);
     }
 
-    fn handle_key_state_changes(&mut self, changes: Vec<(u32, winit::event::ElementState)>) {
-        //self.ui.handle_key_state_changes(changes);
-    }
+    fn handle_key_state_changes(&mut self, _: Vec<(u32, winit::event::ElementState)>) {}
 }
 
 #[derive(Debug, Clone, Copy)]

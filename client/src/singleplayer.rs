@@ -342,7 +342,7 @@ impl State for SinglePlayer {
         Ok((StateTransition::KeepCurrent, encoder.finish()))
     }
 
-    fn handle_window_event(&mut self, event: winit::event::WindowEvent, input_state: &InputState) {}
+    fn handle_window_event(&mut self, _: winit::event::WindowEvent, _: &InputState) {}
 
     fn handle_mouse_motion(&mut self, _settings: &Settings, delta: (f64, f64)) {
         if self.ui.should_update_camera() {

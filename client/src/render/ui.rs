@@ -191,9 +191,9 @@ impl<'a> UiRenderer {
             w,
             h,
             mut parts,
-            z,
             center_horizontally,
             center_vertically,
+            ..
         } in primitive_buffer.text.into_iter()
         {
             let dpi = window_data.scale_factor as f32;
