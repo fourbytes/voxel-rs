@@ -1,6 +1,8 @@
 use anyhow::Result;
 use iced_wgpu::{button, Renderer};
-use iced_winit::{program, Command, Element, Length, Row, Text};
+use iced_winit::{
+    program, Align, Background, Column, Command, Element, HorizontalAlignment, Length, Text,
+};
 use winit::event::ModifiersState;
 
 use crate::{
@@ -178,19 +180,30 @@ impl program::Program for MainMenuControls {
     }
 
     fn view(&mut self) -> Element<Message, Renderer> {
-        Row::new()
-            .width(Length::Units(500))
+        Column::new()
+            .padding(60)
+            .width(Length::Fill)
+            .align_items(Align::Center)
             .spacing(20)
             .push(
                 button::Button::new(
                     &mut self.start_single_player_button_state,
-                    Text::new("Single Player"),
+                    Text::new("Single Player")
+                        .size(30)
+                        .horizontal_alignment(HorizontalAlignment::Center),
                 )
+                .width(Length::Units(300))
                 .on_press(Message::StartSinglePlayer),
             )
             .push(
-                button::Button::new(&mut self.exit_button_state, Text::new("Exit Game"))
-                    .on_press(Message::ExitGame),
+                button::Button::new(
+                    &mut self.exit_button_state,
+                    Text::new("Exit Game")
+                        .size(30)
+                        .horizontal_alignment(HorizontalAlignment::Center),
+                )
+                .width(Length::Units(300))
+                .on_press(Message::ExitGame),
             )
             .into()
     }

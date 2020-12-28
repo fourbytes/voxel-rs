@@ -88,6 +88,7 @@ where
 
     pub fn update(&mut self, window_data: &WindowData) {
         self.viewport = viewport_from_window_data(window_data);
+        // log::debug!("Updated viewport: {:?}", self.viewport);
 
         self.state.update(
             self.viewport.logical_size(),
