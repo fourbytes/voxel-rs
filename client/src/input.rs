@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use voxel_rs_common::debug::send_debug_info;
 use voxel_rs_common::player::PlayerInput;
-use winit::event::{ElementState, KeyboardInput, ModifiersState, MouseButton};
+use winit::event::{ElementState, KeyboardInput, ModifiersState, MouseButton, VirtualKeyCode};
 
 /// A helper struct to keep track of the yaw and pitch of a player
 #[derive(Debug, Clone, Copy)]
@@ -47,7 +47,7 @@ impl Default for YawPitch {
 
 /// The state of the keyboard and mouse buttons.
 pub struct InputState {
-    keys: HashMap<u32, ElementState>,
+    keys: HashMap<VirtualKeyCode, ElementState>,
     mouse_buttons: HashMap<MouseButton, ElementState>,
     modifiers_state: ModifiersState,
     flying: bool,             // TODO: reset this on game start
@@ -67,25 +67,31 @@ impl InputState {
 
     /// Process a keyboard input, returning whether the state of the key changed or not
     pub fn process_keyboard_input(&mut self, input: KeyboardInput) -> bool {
-        let previous_state = self.keys.get(&input.scancode).cloned();
-        self.keys.insert(input.scancode, input.state);
-        if let &Some(ElementState::Pressed) = &previous_state {
-            if input.scancode == TOGGLE_FLIGHT {
-                self.flying = !self.flying;
-            }
-            if input.scancode == TOGGLE_CULLING {
-                self.enable_culling = !self.enable_culling;
-                send_debug_info(
-                    "Render",
-                    "chunkculling",
-                    format!(
-                        "Chunk culling is {}enabled",
-                        if self.enable_culling { "" } else { "not " }
-                    ),
-                );
-            }
+        match input.virtual_keycode {
+            Some(key) => {
+                let previous_state = self.keys.get(&key).cloned();
+                self.keys.insert(key, input.state);
+                if let &Some(ElementState::Pressed) = &previous_state {
+                    if key == TOGGLE_FLIGHT {
+                        self.flying = !self.flying;
+                    }
+                    if key == TOGGLE_CULLING {
+                        self.enable_culling = !self.enable_culling;
+                        send_debug_info(
+                            "Render",
+                            "chunkculling",
+                            format!(
+                                "Chunk culling is {}enabled",
+                                if self.enable_culling { "" } else { "not " }
+                            ),
+                        );
+                    }
+                }
+                previous_state != Some(input.state)
+            },
+            None => false,
         }
-        previous_state != Some(input.state)
+        
     }
 
     /// Process a mouse input, returning whether the state of the button changed or not
@@ -104,7 +110,7 @@ impl InputState {
         self.modifiers_state
     }
 
-    pub fn get_key_state(&self, scancode: u32) -> ElementState {
+    pub fn get_key_state(&self, scancode: VirtualKeyCode) -> ElementState {
         self.keys
             .get(&scancode)
             .cloned()
@@ -117,7 +123,7 @@ impl InputState {
         self.modifiers_state = ModifiersState::default();
     }
 
-    fn is_key_pressed(&self, scancode: u32) -> bool {
+    fn is_key_pressed(&self, scancode: VirtualKeyCode) -> bool {
         match self.get_key_state(scancode) {
             ElementState::Pressed => true,
             ElementState::Released => false,
@@ -140,11 +146,11 @@ impl InputState {
     }
 }
 
-pub const MOVE_FORWARD: u32 = 17;
-pub const MOVE_LEFT: u32 = 30;
-pub const MOVE_BACKWARD: u32 = 31;
-pub const MOVE_RIGHT: u32 = 32;
-pub const MOVE_UP: u32 = 57;
-pub const MOVE_DOWN: u32 = 42;
-pub const TOGGLE_FLIGHT: u32 = 33;
-pub const TOGGLE_CULLING: u32 = 46;
+pub const MOVE_FORWARD: VirtualKeyCode = VirtualKeyCode::W;
+pub const MOVE_LEFT: VirtualKeyCode = VirtualKeyCode::A;
+pub const MOVE_BACKWARD: VirtualKeyCode = VirtualKeyCode::S;
+pub const MOVE_RIGHT: VirtualKeyCode = VirtualKeyCode::D;
+pub const MOVE_UP: VirtualKeyCode = VirtualKeyCode::Space;
+pub const MOVE_DOWN: VirtualKeyCode = VirtualKeyCode::LShift;
+pub const TOGGLE_FLIGHT: VirtualKeyCode = VirtualKeyCode::F;
+pub const TOGGLE_CULLING: VirtualKeyCode = VirtualKeyCode::Scroll;

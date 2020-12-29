@@ -30,7 +30,7 @@ use voxel_rs_common::debug::{send_debug_info, send_perf_breakdown, DebugInfo};
 use voxel_rs_common::item::{Item, ItemMesh};
 use voxel_rs_common::physics::simulation::{ClientPhysicsSimulation, PhysicsState, ServerState};
 use voxel_rs_common::time::BreakdownCounter;
-use winit::event::{ElementState, ModifiersState, MouseButton};
+use winit::event::{ElementState, ModifiersState, MouseButton, VirtualKeyCode};
 
 /// State of a singleplayer world
 pub struct SinglePlayer {
@@ -443,10 +443,10 @@ impl State for SinglePlayer {
         }
     }
 
-    fn handle_key_state_changes(&mut self, changes: Vec<(u32, winit::event::ElementState)>) {
+    fn handle_key_state_changes(&mut self, changes: Vec<(VirtualKeyCode, winit::event::ElementState)>) {
         for (key, state) in changes.into_iter() {
             // Escape key
-            if key == 1 {
+            if key == VirtualKeyCode::Escape {
                 if let winit::event::ElementState::Pressed = state {
                     self.is_paused = !self.is_paused;
                 }

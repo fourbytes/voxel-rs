@@ -5,7 +5,7 @@ use log::{info, warn};
 use std::time::Instant;
 use wgpu::Device;
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
-use winit::event::{ElementState, ModifiersState, MouseButton};
+use winit::event::{ElementState, ModifiersState, MouseButton, VirtualKeyCode};
 use winit::event_loop::ControlFlow;
 use winit::window::Window;
 
@@ -84,7 +84,7 @@ pub trait State {
     /// Mouse clicked
     fn handle_mouse_state_changes(&mut self, changes: Vec<(MouseButton, ElementState)>);
     /// Key pressed
-    fn handle_key_state_changes(&mut self, changes: Vec<(u32, ElementState)>);
+    fn handle_key_state_changes(&mut self, changes: Vec<(VirtualKeyCode, ElementState)>);
 }
 
 /// Color format of the window's color buffer
@@ -229,7 +229,11 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
                     }
                     KeyboardInput { input, .. } => {
                         if input_state.process_keyboard_input(input) {
-                            key_state_changes.push((input.scancode, input.state));
+                            match input.virtual_keycode {
+                                Some(key) => key_state_changes.push((key, input.state)),
+                                None => {},
+                            }
+                            
                         }
                     }
                     CursorMoved { position, .. } => {

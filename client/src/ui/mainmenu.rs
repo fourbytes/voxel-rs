@@ -2,6 +2,7 @@ use anyhow::Result;
 use iced_wgpu::{button, Renderer};
 use iced_winit::{program, Align, Column, Command, Element, HorizontalAlignment, Length, Text};
 use winit::event::ModifiersState;
+use winit::event::{VirtualKeyCode};
 
 use crate::{
     fps::FpsCounter,
@@ -135,7 +136,7 @@ impl State for MainMenu {
     ) {
     }
 
-    fn handle_key_state_changes(&mut self, _: Vec<(u32, winit::event::ElementState)>) {}
+    fn handle_key_state_changes(&mut self, _: Vec<(VirtualKeyCode, winit::event::ElementState)>) {}
 }
 
 #[derive(Debug, Clone, Copy)]
