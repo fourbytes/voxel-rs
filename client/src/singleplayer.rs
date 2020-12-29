@@ -342,7 +342,7 @@ impl State for SinglePlayer {
         );
         self.client_timing.record_part("Render chunks");
 
-        //crate::render::clear_depth(&mut encoder, buffers);
+        crate::render::clear_depth(&mut encoder, buffers);
 
         // Draw ui
         // self.ui.rebuild(data)?;
