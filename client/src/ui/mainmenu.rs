@@ -1,8 +1,6 @@
 use anyhow::Result;
 use iced_wgpu::{button, Renderer};
-use iced_winit::{
-    program, Align, Background, Column, Command, Element, HorizontalAlignment, Length, Text,
-};
+use iced_winit::{program, Align, Column, Command, Element, HorizontalAlignment, Length, Text};
 use winit::event::ModifiersState;
 
 use crate::{

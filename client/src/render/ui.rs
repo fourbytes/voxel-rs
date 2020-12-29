@@ -3,7 +3,6 @@
 use super::buffers::DynamicBuffer;
 use super::init::{load_glsl_shader, ShaderStage};
 use super::{buffer_from_slice, to_u8_slice};
-use crate::ui::PrimitiveBuffer;
 use crate::window::{WindowBuffers, WindowData};
 use std::collections::{BTreeMap, HashMap};
 use wgpu_glyph::{ab_glyph::FontVec, FontId};

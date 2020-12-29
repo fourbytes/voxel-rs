@@ -4,7 +4,7 @@ use crate::{
     physics::BlockContainer,
     player::{PlayerId, PlayerInput},
 };
-use nalgebra::{Point3, Vector3};
+use nalgebra::Point3;
 use std::{
     collections::HashMap,
     time::{Duration, Instant},

@@ -4,7 +4,7 @@
 
 use super::BlockContainer;
 use crate::{debug::send_debug_info, physics::player::PhysicsPlayer, player::PlayerInput};
-use nalgebra::{Vector2, Vector3};
+use nalgebra::Vector3;
 
 // Unit vector in the `angle` direction
 fn movement_direction(yaw: f64, angle: f64) -> Vector3<f64> {
