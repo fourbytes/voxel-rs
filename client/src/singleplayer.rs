@@ -443,7 +443,10 @@ impl State for SinglePlayer {
         }
     }
 
-    fn handle_key_state_changes(&mut self, changes: Vec<(VirtualKeyCode, winit::event::ElementState)>) {
+    fn handle_key_state_changes(
+        &mut self,
+        changes: Vec<(VirtualKeyCode, winit::event::ElementState)>,
+    ) {
         for (key, state) in changes.into_iter() {
             // Escape key
             if key == VirtualKeyCode::Escape {

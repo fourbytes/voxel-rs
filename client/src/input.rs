@@ -88,10 +88,9 @@ impl InputState {
                     }
                 }
                 previous_state != Some(input.state)
-            },
+            }
             None => false,
         }
-        
     }
 
     /// Process a mouse input, returning whether the state of the button changed or not

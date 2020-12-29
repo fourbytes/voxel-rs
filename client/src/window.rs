@@ -231,9 +231,8 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
                         if input_state.process_keyboard_input(input) {
                             match input.virtual_keycode {
                                 Some(key) => key_state_changes.push((key, input.state)),
-                                None => {},
+                                None => {}
                             }
-                            
                         }
                     }
                     CursorMoved { position, .. } => {
@@ -326,13 +325,16 @@ pub fn open_window(mut settings: Settings, initial_state: StateFactory) -> ! {
                         Err(err) => log::warn!("Failed to grab cursor ({:?})", err),
                         _ => (),
                     }
-                    let center_pos = PhysicalPosition {
-                        x: width / 2,
-                        y: height / 2,
-                    };
-                    match window.set_cursor_position(center_pos) {
-                        Err(err) => log::trace!("Failed to center cursor ({:?})", err),
-                        _ => (),
+                    if !cfg!(target_os = "macos") {
+                        // Only center the cursor on platforms other than macOS.
+                        let center_pos = PhysicalPosition {
+                            x: width / 2,
+                            y: height / 2,
+                        };
+                        match window.set_cursor_position(center_pos) {
+                            Err(err) => log::trace!("Failed to center cursor ({:?})", err),
+                            _ => (),
+                        }
                     }
                 } else {
                     window.set_cursor_visible(true);
