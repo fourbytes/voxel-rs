@@ -1,5 +1,4 @@
 use anyhow::{Context, Result};
-use log::info;
 use serde::{Deserialize, Serialize};
 use std::{
     fs::OpenOptions,
@@ -7,31 +6,27 @@ use std::{
     path::Path,
 };
 
-pub fn load_settings(folder_path: &Path, file_path: &Path) -> Result<Settings> {
-    info!(
-        "Reading settings from folder path {} and file path {}...",
-        folder_path.display(),
-        file_path.display()
-    );
+const CONFIG_FILENAME: &str = "config.toml";
+
+pub fn load_settings(folder_path: &Path) -> Result<Settings> {
+    let file_path = folder_path.join(CONFIG_FILENAME);
+    log::info!("Reading settings from path {}...", file_path.display());
     let settings = if file_path.is_file() {
         let mut settings_file = OpenOptions::new()
             .read(true)
             .write(true)
-            .open(file_path)
+            .open(&file_path)
             .context(format!(
-                "Failed to open settings file from folder path {} and file path {}...",
-                folder_path.display(),
+                "Failed to open settings file from path {}...",
                 file_path.display()
             ))?;
         let mut buf = String::new();
         settings_file.read_to_string(&mut buf).context(format!(
-            "Failed to read settings file from folder path {} and file path {}...",
-            folder_path.display(),
+            "Failed to read settings file from path {}...",
             file_path.display()
         ))?;
         toml::de::from_str(&buf).context(format!(
-            "Failed to parse settings file from folder path {} and file path {}...",
-            folder_path.display(),
+            "Failed to parse settings file from path {}...",
             file_path.display()
         ))?
     } else {
@@ -47,7 +42,7 @@ pub fn load_settings(folder_path: &Path, file_path: &Path) -> Result<Settings> {
 }
 
 fn write_settings(path: impl AsRef<Path>, settings: &Settings) -> Result<()> {
-    info!("Writing settings...");
+    log::info!("Writing settings...");
     let path = path.as_ref();
     let mut settings_file = OpenOptions::new()
         .write(true)

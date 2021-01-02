@@ -16,9 +16,8 @@ fn main() -> Result<()> {
     env_logger::init();
 
     log::info!("Starting up...");
-    let config_folder = Path::new("config");
-    let config_file = Path::new("config/settings.toml");
-    let settings = settings::load_settings(&config_folder, &config_file)?;
+    let game_data_path = Path::new("game_data");
+    let settings = settings::load_settings(&game_data_path)?;
     log::info!("Current settings: {:?}", settings);
 
     window::open_window(
