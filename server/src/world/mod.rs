@@ -1,9 +1,13 @@
+mod chunkstore;
+
 use crate::{
     light::worker::{start_lighting_worker, ChunkLightingData, ChunkLightingWorker},
     light::HighestOpaqueBlock,
+    world::chunkstore::ChunkStore,
     worldgen::{start_worldgen_worker, WorldGenerationWorker},
 };
 use lazy_static::lazy_static;
+use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
     sync::Arc,
@@ -27,7 +31,7 @@ lazy_static! {
 /// * updating the lighting
 pub struct World {
     /// The chunks
-    chunks: HashMap<ChunkPos, ServerChunk>,
+    chunks: ChunkStore,
     /// The chunk columns
     chunk_columns: HashMap<ChunkPosXZ, ServerChunkColumn>,
     /// The next chunk version. When the chunk version changes, we know we must send the updated chunk to the clients.
@@ -46,7 +50,7 @@ impl World {
         world_generator: Box<dyn WorldGenerator + Send>,
     ) -> Self {
         Self {
-            chunks: HashMap::default(),
+            chunks: ChunkStore::default(),
             chunk_columns: HashMap::default(),
             next_chunk_version: 0,
             worldgen_queue: HashSet::default(),
@@ -58,13 +62,14 @@ impl World {
     /// Return some chunk if is loaded
     pub fn get_chunk(&self, pos: ChunkPos) -> Option<Arc<Chunk>> {
         self.chunks
-            .get(&pos)
+            .get_chunk(pos)
+            .unwrap()
             .map(|server_chunk| server_chunk.chunk.clone())
     }
 
     /// Return block at position `pos` in the world. 0 is returned if the chunk does not exists/is not loaded
     pub fn get_block(&self, pos: BlockPos) -> BlockId {
-        match self.chunks.get(&pos.containing_chunk_pos()) {
+        match self.chunks.get_chunk(pos.containing_chunk_pos()).unwrap() {
             None => 0,
             Some(server_chunk) => server_chunk
                 .chunk
@@ -78,7 +83,8 @@ impl World {
         let column_pos = pos.into();
 
         // Update chunk HOB
-        let hob = HighestOpaqueBlock::from_chunk(&self.chunks.get(&pos).unwrap().chunk);
+        let hob =
+            HighestOpaqueBlock::from_chunk(&self.chunks.get_chunk(pos).unwrap().unwrap().chunk);
         let column = self.chunk_columns.get_mut(&column_pos).unwrap();
         column.highest_opaque_blocks.insert(pos.py, hob);
 
@@ -104,8 +110,9 @@ impl World {
             for chunk_pos in chunk_column.loaded_chunks.iter() {
                 let server_chunk = self
                     .chunks
-                    .get_mut(chunk_pos)
-                    .expect("Column loaded chunk is not loaded in the world");
+                    .get_chunk(chunk_pos.clone())
+                    .expect("Column loaded chunk is not loaded in the world")
+                    .unwrap();
                 server_chunk.needs_light_update = true;
             }
         }
@@ -114,13 +121,17 @@ impl World {
     /// Set the chunk at some position
     pub fn set_chunk(&mut self, chunk: Arc<Chunk>) {
         let pos = chunk.pos;
-        let server_chunk = self.chunks.entry(pos).or_insert_with(|| ServerChunk {
-            chunk: chunk.clone(),
-            light_chunk: Arc::new(LightChunk::new(pos)),
-            version: 0,
-            is_in_light_queue: false,
-            needs_light_update: true,
-        });
+        let server_chunk = self
+            .chunks
+            .chunk_entry(pos)
+            .unwrap()
+            .or_insert_with(|| ServerChunk {
+                chunk: chunk.clone(),
+                light_chunk: Arc::new(LightChunk::new(pos)),
+                version: 0,
+                is_in_light_queue: false,
+                needs_light_update: true,
+            });
         server_chunk.chunk = chunk;
         server_chunk.needs_light_update = true;
         server_chunk.version = self.next_chunk_version;
@@ -153,7 +164,7 @@ impl World {
     /// Fetch the new light chunks from the light worker
     pub fn get_new_light_chunks(&mut self) {
         while let Some(light_chunk) = self.light_worker.get_result() {
-            if let Some(mut server_chunk) = self.chunks.get_mut(&light_chunk.pos) {
+            if let Some(mut server_chunk) = self.chunks.get_chunk(light_chunk.pos).unwrap() {
                 server_chunk.light_chunk = light_chunk;
                 server_chunk.is_in_light_queue = false;
                 server_chunk.version = self.next_chunk_version;
@@ -165,7 +176,7 @@ impl World {
     /// Start the lighting of a few chunks
     pub fn enqueue_chunks_for_lighting(&mut self, player_close_chunks: &[ChunkPos]) {
         for pos in player_close_chunks {
-            if let Some(server_chunk) = self.chunks.get(&pos) {
+            if let Some(server_chunk) = self.chunks.get_chunk(pos.clone()).unwrap() {
                 if server_chunk.needs_light_update && !server_chunk.is_in_light_queue {
                     let res = self
                         .light_worker
@@ -173,7 +184,11 @@ impl World {
                     match res {
                         // If the lighting queue is not full, update chunk status
                         Ok(()) => {
-                            let server_chunk = self.chunks.get_mut(&pos).expect("Logic error");
+                            let server_chunk = self
+                                .chunks
+                                .get_chunk(pos.clone())
+                                .unwrap()
+                                .expect("Logic error");
                             server_chunk.needs_light_update = false;
                             server_chunk.is_in_light_queue = true;
                         }
@@ -222,7 +237,8 @@ impl World {
     /// Start the worldgen of a few chunks
     pub fn enqueue_chunks_for_worldgen(&mut self, player_close_chunks: &[ChunkPos]) {
         for pos in player_close_chunks {
-            if !self.chunks.contains_key(pos) && !self.worldgen_queue.contains(pos) {
+            if !self.chunks.chunk_exists(pos.clone()).unwrap() && !self.worldgen_queue.contains(pos)
+            {
                 let res = self.worldgen_worker.enqueue(*pos);
                 match res {
                     // If the worldgen queue is not full, update chunk status
@@ -238,7 +254,7 @@ impl World {
 
     /// Drop far chunks
     pub fn drop_far_chunks(&mut self, player_positions: &[(ChunkPos, RenderDistance)]) {
-        let loaded_chunks = self.chunks.keys().cloned().collect::<Vec<_>>();
+        let loaded_chunks = self.loaded_chunks();
         'chunks: for chunk_pos in loaded_chunks {
             for (player_chunk, render_distance) in player_positions {
                 if render_distance.is_chunk_visible(*player_chunk, chunk_pos) {
@@ -252,7 +268,7 @@ impl World {
     /// Unload chunk
     // TODO: persist to disk
     fn unload_chunk(&mut self, pos: ChunkPos) {
-        self.chunks.remove(&pos);
+        self.chunks.flush_chunk(pos);
         let column_pos = ChunkPosXZ::from(pos);
         let col = self
             .chunk_columns
@@ -275,7 +291,7 @@ impl World {
         let mut updates = Vec::new();
         for pos in data.close_chunks.get_close_chunks() {
             let pos = pos.offset_by_pos(player_chunk);
-            if let Some(server_chunk) = self.chunks.get(&pos) {
+            if let Some(server_chunk) = self.chunks.get_chunk(pos).unwrap() {
                 // Send the chunk to the player
                 let loaded = data.loaded_chunks.insert(pos, server_chunk.version);
                 if let Some(old_client_version) = loaded {
@@ -300,9 +316,17 @@ impl World {
         updates
     }
 
+    /// Loaded chunk positions
+    pub fn loaded_chunks(&self) -> Vec<ChunkPos> {
+        self.chunk_columns
+            .iter()
+            .flat_map(|(pos, ccol)| ccol.loaded_chunks)
+            .collect()
+    }
+
     /// Number of loaded chunks
     pub fn num_loaded_chunks(&self) -> usize {
-        self.chunks.len()
+        self.loaded_chunks().len()
     }
 
     /// Number of loaded chunk columns
@@ -314,7 +338,7 @@ impl World {
 impl BlockContainer for World {
     fn is_block_full(&self, pos: BlockPos) -> bool {
         // TODO: use BlockRegistry
-        match self.chunks.get(&pos.containing_chunk_pos()) {
+        match self.chunks.get_chunk(pos.containing_chunk_pos()).unwrap() {
             None => false,
             Some(chunk) => chunk.chunk.get_block_at(pos.pos_in_containing_chunk()) != 0,
         }
@@ -322,6 +346,7 @@ impl BlockContainer for World {
 }
 
 /// The data for each chunk stored by the server
+#[derive(Clone, Serialize, Deserialize)]
 struct ServerChunk {
     /// The chunk itself
     pub chunk: Arc<Chunk>,

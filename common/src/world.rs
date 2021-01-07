@@ -3,6 +3,7 @@ use crate::{
     registry::Registry,
 };
 use nalgebra::Point3;
+use serde::{Deserialize, Serialize};
 
 /// The position of a block in the world.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -69,7 +70,7 @@ pub trait WorldGenerator {
 pub const CHUNK_SIZE: u32 = 32;
 
 /// Position of a chunk in the world
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ChunkPos {
     pub px: i64,
     pub py: i64,
@@ -211,7 +212,7 @@ impl CompressedChunk {
 }
 
 /// A chunk
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Chunk {
     pub pos: ChunkPos,
     pub data: Vec<BlockId>,
@@ -271,7 +272,7 @@ impl Chunk {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LightChunk {
     pub light: Vec<u8>,
     pub pos: ChunkPos,

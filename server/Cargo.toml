@@ -15,4 +15,8 @@ lazy_static = "1.4.0"
 log = "0.4"
 
 # Math
-nalgebra = "0.23"
+nalgebra = { version = "0.23", features = ["serde-serialize"] }
+
+# World Loading
+bincode = "1.3.1"
+serde = { version = "1.0.118", features = ["rc"] }
