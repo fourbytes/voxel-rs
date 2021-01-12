@@ -15,4 +15,4 @@ lazy_static = "1.4.0"
 log = "0.4"
 
 # Math
-nalgebra = "0.23"
+nalgebra = "0.24"

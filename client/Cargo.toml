@@ -40,4 +40,4 @@ iced_wgpu = "0.3"
 iced_native = "0.3"
 
 # Math
-nalgebra = "0.23"
+nalgebra = "0.24"
